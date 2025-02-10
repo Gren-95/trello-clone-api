@@ -31,8 +31,8 @@ A simple Trello clone built with React and Express, featuring drag-and-drop func
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
-cd <project-directory>
+git clone https://github.com/Gren-95/backend-trello-clone.git
+cd https://github.com/Gren-95/backend-trello-clone.git
 ```
 
 2. Install and start the backend:
