@@ -1,0 +1,269 @@
+openapi: 3.0.0
+info:
+  title: Trello Clone API
+  description: Backend for a simple Trello clone application
+  version: 1.0.0
+
+components:
+  schemas:
+    Board:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    List:
+      type: object
+      properties:
+        id:
+          type: string
+        boardId:
+          type: string
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Card:
+      type: object
+      properties:
+        id:
+          type: string
+        listId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+paths:
+  /api/v1/boards:
+    get:
+      summary: Get all boards
+      responses:
+        200:
+          description: A list of boards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Board'
+    post:
+      summary: Create a new board
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        201:
+          description: Board created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+
+  /api/v1/boards/{boardId}:
+    parameters:
+      - in: path
+        name: boardId
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update a board
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        200:
+          description: Board updated successfully
+    delete:
+      summary: Delete a board
+      responses:
+        204:
+          description: Board deleted successfully
+
+  /api/v1/boards/{boardId}/lists:
+    parameters:
+      - in: path
+        name: boardId
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get all lists for a board
+      responses:
+        200:
+          description: Lists for the board
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/List'
+    post:
+      summary: Create a new list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+      responses:
+        201:
+          description: List created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+
+  /api/v1/lists/{listId}:
+    parameters:
+      - in: path
+        name: listId
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update a list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                boardId:
+                  type: string
+      responses:
+        200:
+          description: List updated successfully
+    delete:
+      summary: Delete a list
+      responses:
+        204:
+          description: List deleted successfully
+
+  /api/v1/lists/{listId}/cards:
+    parameters:
+      - in: path
+        name: listId
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get all cards in a list
+      responses:
+        200:
+          description: Cards in the list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Card'
+    post:
+      summary: Create a new card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        201:
+          description: Card created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+
+  /api/v1/cards/{cardId}:
+    parameters:
+      - in: path
+        name: cardId
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update a card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                listId:
+                  type: string
+      responses:
+        200:
+          description: Card updated successfully
+    delete:
+      summary: Delete a card
+      responses:
+        204:
+          description: Card deleted successfully
+
+  /api/v1/cards/{cardId}/move:
+    parameters:
+      - in: path
+        name: cardId
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Move a card to a different list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                listId:
+                  type: string
+                position:
+                  type: number
+      responses:
+        200:
+          description: Card moved successfully 
