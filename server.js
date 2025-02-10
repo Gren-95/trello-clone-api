@@ -4,9 +4,10 @@ const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const cors = require('cors');
 const path = require('path');
-const swaggerDocument = require('./swagger.json');
+const swaggerDocument = YAML.load('./openapi.yaml');
 const app = express();
 const port = process.env.PORT || 3000;
+const jwt = require('jsonwebtoken');
 
 app.use(cors());
 app.use(express.json());
@@ -21,6 +22,49 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 let boards = [];
 let lists = [];
 let cards = [];
+
+// Add JWT secret key (in production, this should be in environment variables)
+const JWT_SECRET = 'your-secret-key';
+
+// Authentication middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Login endpoint (for testing purposes)
+app.post('/api/v1/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  // In a real application, you would validate credentials against a database
+  // This is just for demonstration
+  if (username === 'admin' && password === 'password') {
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
+  }
+});
+
+// Apply authentication middleware to all /api routes except login
+app.use('/api/v1/*', (req, res, next) => {
+  if (req.path === '/api/v1/login') {
+    return next();
+  }
+  authenticateToken(req, res, next);
+});
 
 // GET /boards
 app.get('/api/v1/boards', (req, res) => {

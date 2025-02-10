@@ -5,6 +5,11 @@ info:
   version: 1.0.0
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     Board:
       type: object
@@ -48,10 +53,58 @@ components:
         updatedAt:
           type: string
           format: date-time
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+
+security:
+  - bearerAuth: []
 
 paths:
+  /api/v1/login:
+    post:
+      security: []  # No authentication required for login
+      summary: Login to get JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/boards:
     get:
+      security: []  # No authentication required for GET
       summary: Get all boards
       responses:
         200:
@@ -63,6 +116,8 @@ paths:
                 items:
                   $ref: '#/components/schemas/Board'
     post:
+      security:
+        - bearerAuth: []  # Require authentication for POST
       summary: Create a new board
       requestBody:
         required: true
@@ -82,14 +137,25 @@ paths:
                 $ref: '#/components/schemas/Board'
 
   /api/v1/boards/{boardId}:
-    parameters:
-      - in: path
-        name: boardId
-        required: true
-        schema:
-          type: string
+    get:
+      security: []  # No authentication required for GET
+      summary: Get a specific board
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
     put:
+      security:
+        - bearerAuth: []  # Require authentication for PUT
       summary: Update a board
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -103,31 +169,39 @@ paths:
         200:
           description: Board updated successfully
     delete:
+      security:
+        - bearerAuth: []  # Require authentication for DELETE
       summary: Delete a board
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
       responses:
         204:
           description: Board deleted successfully
 
   /api/v1/boards/{boardId}/lists:
-    parameters:
-      - in: path
-        name: boardId
-        required: true
-        schema:
-          type: string
     get:
+      security: []  # No authentication required for GET
       summary: Get all lists for a board
-      responses:
-        200:
-          description: Lists for the board
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/List'
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
     post:
+      security:
+        - bearerAuth: []  # Require authentication for POST
       summary: Create a new list
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -146,14 +220,25 @@ paths:
                 $ref: '#/components/schemas/List'
 
   /api/v1/lists/{listId}:
-    parameters:
-      - in: path
-        name: listId
-        required: true
-        schema:
-          type: string
+    get:
+      security: []  # No authentication required for GET
+      summary: Get a specific list
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
     put:
+      security:
+        - bearerAuth: []  # Require authentication for PUT
       summary: Update a list
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -169,31 +254,39 @@ paths:
         200:
           description: List updated successfully
     delete:
+      security:
+        - bearerAuth: []  # Require authentication for DELETE
       summary: Delete a list
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
       responses:
         204:
           description: List deleted successfully
 
   /api/v1/lists/{listId}/cards:
-    parameters:
-      - in: path
-        name: listId
-        required: true
-        schema:
-          type: string
     get:
+      security: []  # No authentication required for GET
       summary: Get all cards in a list
-      responses:
-        200:
-          description: Cards in the list
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Card'
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
     post:
+      security:
+        - bearerAuth: []  # Require authentication for POST
       summary: Create a new card
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -214,14 +307,25 @@ paths:
                 $ref: '#/components/schemas/Card'
 
   /api/v1/cards/{cardId}:
-    parameters:
-      - in: path
-        name: cardId
-        required: true
-        schema:
-          type: string
+    get:
+      security: []  # No authentication required for GET
+      summary: Get a specific card
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
     put:
+      security:
+        - bearerAuth: []  # Require authentication for PUT
       summary: Update a card
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -239,20 +343,30 @@ paths:
         200:
           description: Card updated successfully
     delete:
+      security:
+        - bearerAuth: []  # Require authentication for DELETE
       summary: Delete a card
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
       responses:
         204:
           description: Card deleted successfully
 
   /api/v1/cards/{cardId}/move:
-    parameters:
-      - in: path
-        name: cardId
-        required: true
-        schema:
-          type: string
     patch:
+      security:
+        - bearerAuth: []  # Require authentication for PATCH
       summary: Move a card to a different list
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
