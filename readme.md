@@ -40,8 +40,6 @@ cd https://github.com/Gren-95/backend-trello-clone.git
 ```bash
 # Make sure you're in the root directory, NOT the frontend directory
 npm install
-npm init -y  # If package.json doesn't exist
-npm install express cors swagger-ui-express
 node server.js
 ```
 
@@ -50,11 +48,6 @@ The backend server will start at http://localhost:3000
 ## API Documentation
 
 The API documentation is available at http://localhost:3000/api-docs when the backend server is running.
-
-## Usage
-
-1. Open your browser and navigate to http://localhost:5173
-2. Start creating boards and lists!
 
 ## Development URLs
 
