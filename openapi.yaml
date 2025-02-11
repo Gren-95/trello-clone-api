@@ -10,23 +10,33 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: JWT token obtained from login endpoint
   schemas:
     Board:
       type: object
+      required:
+        - name
       properties:
         id:
           type: string
         name:
+          type: string
+        userId:
           type: string
         createdAt:
           type: string
           format: date-time
     List:
       type: object
+      required:
+        - title
+        - boardId
       properties:
         id:
           type: string
         boardId:
+          type: string
+        userId:
           type: string
         title:
           type: string
@@ -38,10 +48,15 @@ components:
           format: date-time
     Card:
       type: object
+      required:
+        - title
+        - listId
       properties:
         id:
           type: string
         listId:
+          type: string
+        userId:
           type: string
         title:
           type: string
@@ -55,6 +70,8 @@ components:
           format: date-time
     Error:
       type: object
+      required:
+        - error
       properties:
         error:
           type: string
@@ -68,10 +85,47 @@ components:
           type: string
         password:
           type: string
+          format: password
     LoginResponse:
       type: object
+      required:
+        - token
       properties:
         token:
+          type: string
+          description: JWT token for authentication
+    User:
+      type: object
+      required:
+        - username
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        password:
+          type: string
+          minLength: 6
+          format: password
+    LogoutResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
           type: string
 
 security:
@@ -102,9 +156,75 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /logout:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Logout and revoke current token
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /register:
+    post:
+      security: []
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get all users
+      description: Returns a list of all users (without passwords)
+      responses:
+        '200':
+          description: List of users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /boards:
     get:
-      security: []  # No authentication required for GET
+      security:
+        - bearerAuth: []  # Require authentication for GET
       summary: Get all boards
       responses:
         200:
@@ -115,9 +235,15 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Board'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     post:
       security:
-        - bearerAuth: []  # Require authentication for POST
+        - bearerAuth: []
       summary: Create a new board
       requestBody:
         required: true
@@ -125,9 +251,13 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - name
               properties:
                 name:
                   type: string
+                  minLength: 1
+                  maxLength: 100
       responses:
         201:
           description: Board created
@@ -138,7 +268,8 @@ paths:
 
   /boards/{boardId}:
     get:
-      security: []  # No authentication required for GET
+      security:
+        - bearerAuth: []  # Require authentication for GET
       summary: Get a specific board
       parameters:
         - in: path
@@ -146,6 +277,25 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        200:
+          description: Board retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden - Not authorized to view this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       security:
         - bearerAuth: []  # Require authentication for PUT
@@ -184,7 +334,8 @@ paths:
 
   /boards/{boardId}/lists:
     get:
-      security: []  # No authentication required for GET
+      security:
+        - bearerAuth: []  # Require authentication for GET
       summary: Get all lists for a board
       parameters:
         - in: path
@@ -192,6 +343,27 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        200:
+          description: Lists retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/List'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden - Not authorized to view this board's lists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     post:
       security:
         - bearerAuth: []  # Require authentication for POST
@@ -231,7 +403,7 @@ paths:
             type: string
     put:
       security:
-        - bearerAuth: []  # Require authentication for PUT
+        - bearerAuth: []
       summary: Update a list
       parameters:
         - in: path
@@ -245,9 +417,13 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - title
               properties:
                 title:
                   type: string
+                  minLength: 1
+                  maxLength: 100
                 boardId:
                   type: string
       responses:
@@ -269,7 +445,8 @@ paths:
 
   /lists/{listId}/cards:
     get:
-      security: []  # No authentication required for GET
+      security:
+        - bearerAuth: []  # Require authentication for GET
       summary: Get all cards in a list
       parameters:
         - in: path
@@ -277,6 +454,27 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        200:
+          description: Cards retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Card'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden - Not authorized to view cards in this list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     post:
       security:
         - bearerAuth: []  # Require authentication for POST
@@ -308,7 +506,8 @@ paths:
 
   /cards/{cardId}:
     get:
-      security: []  # No authentication required for GET
+      security:
+        - bearerAuth: []  # Require authentication for GET
       summary: Get a specific card
       parameters:
         - in: path
@@ -316,6 +515,25 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        200:
+          description: Card retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden - Not authorized to view this card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       security:
         - bearerAuth: []  # Require authentication for PUT
@@ -359,7 +577,7 @@ paths:
   /cards/{cardId}/move:
     patch:
       security:
-        - bearerAuth: []  # Require authentication for PATCH
+        - bearerAuth: []
       summary: Move a card to a different list
       parameters:
         - in: path
@@ -373,11 +591,14 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - listId
               properties:
                 listId:
                   type: string
                 position:
                   type: number
+                  minimum: 0
       responses:
         200:
           description: Card moved successfully 
