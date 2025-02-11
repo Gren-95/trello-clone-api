@@ -78,7 +78,7 @@ security:
   - bearerAuth: []
 
 paths:
-  /api/v1/login:
+  /login:
     post:
       security: []  # No authentication required for login
       summary: Login to get JWT token
@@ -102,7 +102,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/boards:
+  /boards:
     get:
       security: []  # No authentication required for GET
       summary: Get all boards
@@ -136,7 +136,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Board'
 
-  /api/v1/boards/{boardId}:
+  /boards/{boardId}:
     get:
       security: []  # No authentication required for GET
       summary: Get a specific board
@@ -182,7 +182,7 @@ paths:
         204:
           description: Board deleted successfully
 
-  /api/v1/boards/{boardId}/lists:
+  /boards/{boardId}/lists:
     get:
       security: []  # No authentication required for GET
       summary: Get all lists for a board
@@ -219,7 +219,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/List'
 
-  /api/v1/lists/{listId}:
+  /lists/{listId}:
     get:
       security: []  # No authentication required for GET
       summary: Get a specific list
@@ -267,7 +267,7 @@ paths:
         204:
           description: List deleted successfully
 
-  /api/v1/lists/{listId}/cards:
+  /lists/{listId}/cards:
     get:
       security: []  # No authentication required for GET
       summary: Get all cards in a list
@@ -306,7 +306,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Card'
 
-  /api/v1/cards/{cardId}:
+  /cards/{cardId}:
     get:
       security: []  # No authentication required for GET
       summary: Get a specific card
@@ -356,7 +356,7 @@ paths:
         204:
           description: Card deleted successfully
 
-  /api/v1/cards/{cardId}/move:
+  /cards/{cardId}/move:
     patch:
       security:
         - bearerAuth: []  # Require authentication for PATCH

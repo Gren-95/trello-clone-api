@@ -16,7 +16,7 @@ app.use(express.json());
 const swaggerDocumentYAML = YAML.load(path.join(__dirname, 'openapi.yaml'));
 
 // Serve Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // In-memory storage
 let boards = [];
@@ -45,7 +45,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Login endpoint (for testing purposes)
-app.post('/api/v1/login', (req, res) => {
+app.post('/login', (req, res) => {
   const { username, password } = req.body;
   
   // In a real application, you would validate credentials against a database
@@ -58,33 +58,33 @@ app.post('/api/v1/login', (req, res) => {
   }
 });
 
-// Apply authentication middleware to all /api routes except login
-app.use('/api/v1/*', (req, res, next) => {
-  if (req.path === '/api/v1/login') {
+// Apply authentication middleware to all routes except login
+app.use('/*', (req, res, next) => {
+  if (req.path === '/login') {
     return next();
   }
   authenticateToken(req, res, next);
 });
 
 // GET /boards
-app.get('/api/v1/boards', (req, res) => {
+app.get('/boards', (req, res) => {
   res.status(200).json(boards);
 });
 
 // POST /boards
-app.post('/api/v1/boards', (req, res) => {
+app.post('/boards', (req, res) => {
   const { name } = req.body;
   const newBoard = { id: Date.now().toString(), name, createdAt: new Date().toISOString() };
   boards.push(newBoard);
   res.status(201).json(newBoard);
 });
 
-app.get('/api/v1/boards/:boardId/lists', (req, res) => {
+app.get('/boards/:boardId/lists', (req, res) => {
   const boardLists = lists.filter(list => list.boardId === req.params.boardId);
   res.json(boardLists);
 });
 
-app.post('/api/v1/boards/:boardId/lists', (req, res) => {
+app.post('/boards/:boardId/lists', (req, res) => {
   const { title } = req.body;
   const newList = {
     id: Date.now().toString(),
@@ -96,7 +96,7 @@ app.post('/api/v1/boards/:boardId/lists', (req, res) => {
   res.status(201).json(newList);
 });
 
-app.post('/api/v1/lists/:listId/cards', (req, res) => {
+app.post('/lists/:listId/cards', (req, res) => {
   const { title, description } = req.body;
   const newCard = {
     id: Date.now().toString(),
@@ -109,12 +109,12 @@ app.post('/api/v1/lists/:listId/cards', (req, res) => {
   res.status(201).json(newCard);
 });
 
-app.get('/api/v1/lists/:listId/cards', (req, res) => {
+app.get('/lists/:listId/cards', (req, res) => {
   const listCards = cards.filter(card => card.listId === req.params.listId);
   res.json(listCards);
 });
 
-app.delete('/api/v1/boards/:boardId', (req, res) => {
+app.delete('/boards/:boardId', (req, res) => {
   const boardId = req.params.boardId;
   boards = boards.filter(board => board.id !== boardId);
   // Also delete associated lists and cards
@@ -125,7 +125,7 @@ app.delete('/api/v1/boards/:boardId', (req, res) => {
   res.status(204).send();
 });
 
-app.delete('/api/v1/lists/:listId', (req, res) => {
+app.delete('/lists/:listId', (req, res) => {
   const listId = req.params.listId;
   lists = lists.filter(list => list.id !== listId);
   // Also delete associated cards
@@ -133,13 +133,13 @@ app.delete('/api/v1/lists/:listId', (req, res) => {
   res.status(204).send();
 });
 
-app.delete('/api/v1/cards/:cardId', (req, res) => {
+app.delete('/cards/:cardId', (req, res) => {
   const cardId = req.params.cardId;
   cards = cards.filter(card => card.id !== cardId);
   res.status(204).send();
 });
 
-app.patch('/api/v1/cards/:cardId/move', (req, res) => {
+app.patch('/cards/:cardId/move', (req, res) => {
   const { cardId } = req.params;
   const { listId } = req.body;
   
@@ -156,7 +156,7 @@ app.patch('/api/v1/cards/:cardId/move', (req, res) => {
   res.json(cards[cardIndex]);
 });
 
-app.patch('/api/v1/boards/:boardId', (req, res) => {
+app.patch('/boards/:boardId', (req, res) => {
   const { boardId } = req.params;
   const { name } = req.body;
   
@@ -169,7 +169,7 @@ app.patch('/api/v1/boards/:boardId', (req, res) => {
   res.json(board);
 });
 
-app.put('/api/v1/lists/:listId', (req, res) => {
+app.put('/lists/:listId', (req, res) => {
   const { listId } = req.params;
   const { title, boardId } = req.body;
   
@@ -191,7 +191,7 @@ app.put('/api/v1/lists/:listId', (req, res) => {
   res.json(lists[listIndex]);
 });
 
-app.put('/api/v1/cards/:cardId', (req, res) => {
+app.put('/cards/:cardId', (req, res) => {
   const { cardId } = req.params;
   const { title, description, listId } = req.body;
   
@@ -213,5 +213,5 @@ app.put('/api/v1/cards/:cardId', (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
-  console.log(`API Docs available at http://localhost:${port}/api-docs`);
+  console.log(`API Docs available at http://localhost:${port}/docs`);
 });

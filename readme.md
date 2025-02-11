@@ -47,9 +47,9 @@ A simple Trello clone built with React and Express, featuring drag-and-drop func
 
 ## API Documentation
 
-The API documentation is available at [http://localhost:3000/api-docs](http://localhost:3000/api-docs) when the backend server is running.
+The API documentation is available at [http://localhost:3000/docs](http://localhost:3000/docs) when the backend server is running.
 
 ## Development URLs
 
 - Backend API: [http://localhost:3000](http://localhost:3000)
-- API Documentation: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+- API Documentation: [http://localhost:3000/docs](http://localhost:3000/docs)
