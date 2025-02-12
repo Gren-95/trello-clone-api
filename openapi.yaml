@@ -285,7 +285,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
         '400':
-          description: Username already taken
+          description: Invalid username or password format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Username already exists
           content:
             application/json:
               schema:
@@ -339,6 +345,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Board'
+        400:
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /boards/{boardId}:
     get:
@@ -830,6 +848,30 @@ paths:
       responses:
         200:
           description: Card moved successfully
+        400:
+          description: Invalid list ID or position
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Card or list not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        409:
+          description: Position conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /boards/{boardId}/share:
     post:
@@ -862,6 +904,24 @@ paths:
       responses:
         200:
           description: Board shared successfully
+        400:
+          description: Invalid user ID or role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Board or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /boards/{boardId}/archive:
     post:
@@ -890,6 +950,12 @@ paths:
       responses:
         200:
           description: Board archive status updated successfully
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /boards/{boardId}/favorite:
     post:
@@ -918,6 +984,12 @@ paths:
       responses:
         200:
           description: Board favorite status updated successfully
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /boards/templates:
     get:
@@ -935,6 +1007,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Board'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /boards/{boardId}/duplicate:
     post:
@@ -970,6 +1048,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Board'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /cards/{cardId}/attachments:
     post:
@@ -997,6 +1081,24 @@ paths:
       responses:
         201:
           description: Attachment added successfully
+        400:
+          description: Invalid file format or size
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        413:
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /cards/{cardId}/checklist:
     post:
@@ -1025,6 +1127,12 @@ paths:
       responses:
         201:
           description: Checklist added successfully
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /cards/{cardId}/comments:
     post:
@@ -1052,4 +1160,22 @@ paths:
                   type: string
       responses:
         201:
-          description: Comment added successfully 
+          description: Comment added successfully
+        400:
+          description: Invalid comment text
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 
