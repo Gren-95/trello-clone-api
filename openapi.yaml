@@ -345,6 +345,11 @@ paths:
       responses:
         201:
           description: Board created
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created board
           content:
             application/json:
               schema:
@@ -572,6 +577,11 @@ paths:
       responses:
         201:
           description: List created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created list
           content:
             application/json:
               schema:
@@ -752,6 +762,11 @@ paths:
       responses:
         201:
           description: Card created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created card
           content:
             application/json:
               schema:
