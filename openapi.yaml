@@ -4,6 +4,10 @@ info:
   description: Backend for a simple Trello clone application
   version: 1.0.0
 
+servers:
+  - url: /
+    description: Server
+
 tags:
   - name: Authentication
     description: User authentication endpoints
@@ -828,23 +832,23 @@ paths:
       parameters:
         - in: path
           name: cardId
-          required: true
+          required: false
           schema:
             type: string
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
               type: object
-              required:
-                - listId
               properties:
                 listId:
                   type: string
+                  description: The ID of the list to move the card to
                 position:
                   type: number
                   minimum: 0
+                  description: The position within the list (0-based index)
       responses:
         200:
           description: Card moved successfully
