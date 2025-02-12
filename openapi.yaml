@@ -4,6 +4,16 @@ info:
   description: Backend for a simple Trello clone application
   version: 1.0.0
 
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Boards
+    description: Board management endpoints
+  - name: Lists
+    description: List management endpoints
+  - name: Cards
+    description: Card management endpoints
+
 components:
   securitySchemes:
     bearerAuth:
@@ -26,6 +36,28 @@ components:
         createdAt:
           type: string
           format: date-time
+        isArchived:
+          type: boolean
+          default: false
+        background:
+          type: string
+          description: URL or color code for board background
+        isTemplate:
+          type: boolean
+          default: false
+        isFavorite:
+          type: boolean
+          default: false
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+              role:
+                type: string
+                enum: [owner, admin, member]
     List:
       type: object
       required:
@@ -68,6 +100,60 @@ components:
         updatedAt:
           type: string
           format: date-time
+        dueDate:
+          type: string
+          format: date-time
+        labels:
+          type: array
+          items:
+            type: string
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              url:
+                type: string
+              type:
+                type: string
+        checklist:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              items:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    text:
+                      type: string
+                    completed:
+                      type: boolean
+        comments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              userId:
+                type: string
+              text:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
     Error:
       type: object
       required:
@@ -134,6 +220,8 @@ security:
 paths:
   /login:
     post:
+      tags:
+        - Authentication
       security: []  # No authentication required for login
       summary: Login to get JWT token
       requestBody:
@@ -158,6 +246,8 @@ paths:
 
   /logout:
     post:
+      tags:
+        - Authentication
       security:
         - bearerAuth: []
       summary: Logout and revoke current token
@@ -177,6 +267,8 @@ paths:
 
   /register:
     post:
+      tags:
+        - Authentication
       security: []
       summary: Register a new user
       requestBody:
@@ -199,30 +291,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /users:
-    get:
-      security:
-        - bearerAuth: []
-      summary: Get all users
-      description: Returns a list of all users (without passwords)
-      responses:
-        '200':
-          description: List of users retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
   /boards:
     get:
+      tags:
+        - Boards
       security:
         - bearerAuth: []  # Require authentication for GET
       summary: Get all boards
@@ -242,6 +314,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
+      tags:
+        - Boards
       security:
         - bearerAuth: []
       summary: Create a new board
@@ -268,6 +342,8 @@ paths:
 
   /boards/{boardId}:
     get:
+      tags:
+        - Boards
       security:
         - bearerAuth: []  # Require authentication for GET
       summary: Get a specific board
@@ -297,8 +373,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     put:
+      tags:
+        - Boards
       security:
-        - bearerAuth: []  # Require authentication for PUT
+        - bearerAuth: []
       summary: Update a board
       parameters:
         - in: path
@@ -315,12 +393,34 @@ paths:
               properties:
                 name:
                   type: string
+                background:
+                  type: string
+                isTemplate:
+                  type: boolean
       responses:
         200:
           description: Board updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        403:
+          description: Forbidden - Not authorized to update this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
+      tags:
+        - Boards
       security:
-        - bearerAuth: []  # Require authentication for DELETE
+        - bearerAuth: []
       summary: Delete a board
       parameters:
         - in: path
@@ -331,9 +431,23 @@ paths:
       responses:
         204:
           description: Board deleted successfully
+        403:
+          description: Forbidden - Not authorized to delete this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /boards/{boardId}/lists:
     get:
+      tags:
+        - Lists
       security:
         - bearerAuth: []  # Require authentication for GET
       summary: Get all lists for a board
@@ -365,49 +479,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
+      tags:
+        - Lists
       security:
-        - bearerAuth: []  # Require authentication for POST
+        - bearerAuth: []
       summary: Create a new list
       parameters:
         - in: path
           name: boardId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                title:
-                  type: string
-      responses:
-        201:
-          description: List created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/List'
-
-  /lists/{listId}:
-    get:
-      security: []  # No authentication required for GET
-      summary: Get a specific list
-      parameters:
-        - in: path
-          name: listId
-          required: true
-          schema:
-            type: string
-    put:
-      security:
-        - bearerAuth: []
-      summary: Update a list
-      parameters:
-        - in: path
-          name: listId
           required: true
           schema:
             type: string
@@ -424,14 +503,82 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 100
-                boardId:
+      responses:
+        201:
+          description: List created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        403:
+          description: Forbidden - Not authorized to create lists in this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lists/{listId}:
+    get:
+      tags:
+        - Lists
+      security: []  # No authentication required for GET
+      summary: Get a specific list
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+    put:
+      tags:
+        - Lists
+      security:
+        - bearerAuth: []
+      summary: Update a list
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
                   type: string
+                  minLength: 1
+                  maxLength: 100
+                position:
+                  type: integer
+                  minimum: 0
       responses:
         200:
           description: List updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        403:
+          description: Forbidden - Not authorized to update this list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: List not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
+      tags:
+        - Lists
       security:
-        - bearerAuth: []  # Require authentication for DELETE
+        - bearerAuth: []
       summary: Delete a list
       parameters:
         - in: path
@@ -442,9 +589,23 @@ paths:
       responses:
         204:
           description: List deleted successfully
+        403:
+          description: Forbidden - Not authorized to delete this list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: List not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /lists/{listId}/cards:
     get:
+      tags:
+        - Cards
       security:
         - bearerAuth: []  # Require authentication for GET
       summary: Get all cards in a list
@@ -476,8 +637,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
+      tags:
+        - Cards
       security:
-        - bearerAuth: []  # Require authentication for POST
+        - bearerAuth: []
       summary: Create a new card
       parameters:
         - in: path
@@ -491,21 +654,40 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - title
               properties:
                 title:
                   type: string
+                  minLength: 1
+                  maxLength: 100
                 description:
                   type: string
+                dueDate:
+                  type: string
+                  format: date-time
+                labels:
+                  type: array
+                  items:
+                    type: string
       responses:
         201:
-          description: Card created
+          description: Card created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Card'
+        403:
+          description: Forbidden - Not authorized to create cards in this list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /cards/{cardId}:
     get:
+      tags:
+        - Cards
       security:
         - bearerAuth: []  # Require authentication for GET
       summary: Get a specific card
@@ -535,8 +717,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     put:
+      tags:
+        - Cards
       security:
-        - bearerAuth: []  # Require authentication for PUT
+        - bearerAuth: []
       summary: Update a card
       parameters:
         - in: path
@@ -553,16 +737,46 @@ paths:
               properties:
                 title:
                   type: string
+                  minLength: 1
+                  maxLength: 100
                 description:
                   type: string
+                dueDate:
+                  type: string
+                  format: date-time
+                labels:
+                  type: array
+                  items:
+                    type: string
                 listId:
                   type: string
+                position:
+                  type: integer
+                  minimum: 0
       responses:
         200:
           description: Card updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        403:
+          description: Forbidden - Not authorized to update this card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
+      tags:
+        - Cards
       security:
-        - bearerAuth: []  # Require authentication for DELETE
+        - bearerAuth: []
       summary: Delete a card
       parameters:
         - in: path
@@ -573,9 +787,23 @@ paths:
       responses:
         204:
           description: Card deleted successfully
+        403:
+          description: Forbidden - Not authorized to delete this card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /cards/{cardId}/move:
     patch:
+      tags:
+        - Cards
       security:
         - bearerAuth: []
       summary: Move a card to a different list
@@ -601,4 +829,227 @@ paths:
                   minimum: 0
       responses:
         200:
-          description: Card moved successfully 
+          description: Card moved successfully
+
+  /boards/{boardId}/share:
+    post:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Share board with other users
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - role
+              properties:
+                userId:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, member]
+      responses:
+        200:
+          description: Board shared successfully
+
+  /boards/{boardId}/archive:
+    post:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Archive or unarchive a board
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - archived
+              properties:
+                archived:
+                  type: boolean
+      responses:
+        200:
+          description: Board archive status updated successfully
+
+  /boards/{boardId}/favorite:
+    post:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Add or remove board from favorites
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - favorite
+              properties:
+                favorite:
+                  type: boolean
+      responses:
+        200:
+          description: Board favorite status updated successfully
+
+  /boards/templates:
+    get:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Get all board templates
+      responses:
+        200:
+          description: List of board templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Board'
+
+  /boards/{boardId}/duplicate:
+    post:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Create a copy of a board
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                keepMembers:
+                  type: boolean
+                  default: false
+      responses:
+        201:
+          description: Board duplicated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+
+  /cards/{cardId}/attachments:
+    post:
+      tags:
+        - Cards
+      security:
+        - bearerAuth: []
+      summary: Add attachment to card
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: Attachment added successfully
+
+  /cards/{cardId}/checklist:
+    post:
+      tags:
+        - Cards
+      security:
+        - bearerAuth: []
+      summary: Add checklist to card
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+      responses:
+        201:
+          description: Checklist added successfully
+
+  /cards/{cardId}/comments:
+    post:
+      tags:
+        - Cards
+      security:
+        - bearerAuth: []
+      summary: Add comment to card
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+      responses:
+        201:
+          description: Comment added successfully 
