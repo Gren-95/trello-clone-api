@@ -38,9 +38,7 @@ A simple Trello clone built with React and Express, featuring drag-and-drop func
 2. Install and start the backend:
 
     ```bash
-    # Make sure you're in the root directory, NOT the frontend directory
-    npm install
-    node server.js
+    npm start
     ```
 
     The backend server will start at [http://localhost:3000](http://localhost:3000)
@@ -48,8 +46,3 @@ A simple Trello clone built with React and Express, featuring drag-and-drop func
 ## API Documentation
 
 The API documentation is available at [http://localhost:3000/docs](http://localhost:3000/docs) when the backend server is running.
-
-## Development URLs
-
-- Backend API: [http://localhost:3000](http://localhost:3000)
-- API Documentation: [http://localhost:3000/docs](http://localhost:3000/docs)
