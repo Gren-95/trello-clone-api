@@ -465,6 +465,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    patch:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Update board name
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+      responses:
+        200:
+          description: Board updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        403:
+          description: Forbidden - Not authorized to modify this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /boards/{boardId}/lists:
     get:
@@ -551,6 +595,19 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        200:
+          description: List retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        404:
+          description: List not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       tags:
         - Lists
@@ -832,46 +889,36 @@ paths:
       parameters:
         - in: path
           name: cardId
-          required: false
+          required: true
           schema:
             type: string
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - listId
               properties:
                 listId:
                   type: string
                   description: The ID of the list to move the card to
-                position:
-                  type: number
-                  minimum: 0
-                  description: The position within the list (0-based index)
       responses:
         200:
           description: Card moved successfully
-        400:
-          description: Invalid list ID or position
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        401:
-          description: Unauthorized
+                $ref: '#/components/schemas/Card'
+        403:
+          description: Forbidden - Not authorized to move this card
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
           description: Card or list not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        409:
-          description: Position conflict
           content:
             application/json:
               schema:
