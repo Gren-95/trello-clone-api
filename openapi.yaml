@@ -17,6 +17,10 @@ tags:
     description: List management endpoints
   - name: Cards
     description: Card management endpoints
+  - name: Users
+    description: User management endpoints
+  - name: Comments
+    description: Comment management endpoints
 
 components:
   securitySchemes:
@@ -217,85 +221,176 @@ components:
       properties:
         message:
           type: string
+    CommentRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+    Comment:
+      type: object
+      required:
+        - id
+        - text
+      properties:
+        id:
+          type: string
+        text:
+          type: string
 
 security:
   - bearerAuth: []
 
 paths:
-  /login:
+  /sessions:
     post:
       tags:
         - Authentication
       security: []  # No authentication required for login
-      summary: Login to get JWT token
+      summary: Create a session to get JWT token
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: "exampleUser"
+              password: "examplePassword"
       responses:
-        '200':
-          description: Successful login
+        200:
+          description: Successful session creation
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
-        '401':
+        401:
           description: Invalid credentials
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /logout:
+  /sessions/logout:
     post:
       tags:
         - Authentication
       security:
         - bearerAuth: []
-      summary: Logout and revoke current token
+      summary: End the current session and revoke the token
       responses:
-        '200':
+        200:
           description: Successfully logged out
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LogoutResponse'
-        '401':
+        401:
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /register:
+  /users:
+    get:
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      summary: Retrieve all users
+      responses:
+        200:
+          description: A list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     post:
       tags:
-        - Authentication
+        - Users
       security: []
-      summary: Register a new user
+      summary: Create a new user
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: "newUser"
+              password: "securePassword"
       responses:
-        '201':
+        201:
           description: User created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created user
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-        '400':
+        400:
           description: Invalid username or password format
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '409':
+        409:
           description: Username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      summary: Update a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+            example:
+              username: "updatedUser"
+      responses:
+        200:
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      summary: Delete a user
+      responses:
+        204:
+          description: User deleted successfully
+        401:
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -342,6 +437,8 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 100
+            example:
+              name: "New Board"
       responses:
         201:
           description: Board created
@@ -360,6 +457,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Update a board
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Board'
+      responses:
+        200:
+          description: Board updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Delete a board
+      responses:
+        204:
+          description: Board deleted successfully
         401:
           description: Unauthorized
           content:
@@ -424,6 +561,10 @@ paths:
                   type: string
                 isTemplate:
                   type: boolean
+            example:
+              name: "Updated Board Name"
+              background: "#FFFFFF"
+              isTemplate: false
       responses:
         200:
           description: Board updated successfully
@@ -479,22 +620,20 @@ paths:
       parameters:
         - in: path
           name: boardId
-          required: true
           schema:
             type: string
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - name
               properties:
                 name:
                   type: string
                   minLength: 1
                   maxLength: 100
+            example:
+              name: "Partially Updated Board Name"
       responses:
         200:
           description: Board updated successfully
@@ -904,21 +1043,19 @@ paths:
       parameters:
         - in: path
           name: cardId
-          required: true
           schema:
             type: string
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - listId
               properties:
                 listId:
                   type: string
                   description: The ID of the list to move the card to
+            example:
+              listId: "newListId"
       responses:
         200:
           description: Card moved successfully
@@ -939,7 +1076,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /boards/{boardId}/share:
+  /boards/{boardId}/shares:
     post:
       tags:
         - Boards
@@ -967,9 +1104,20 @@ paths:
                 role:
                   type: string
                   enum: [admin, member]
+            example:
+              userId: "user123"
+              role: "member"
       responses:
         200:
           description: Board shared successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Board shared successfully"
         400:
           description: Invalid user ID or role
           content:
@@ -989,7 +1137,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /boards/{boardId}/archive:
+  /boards/{boardId}/archives:
     post:
       tags:
         - Boards
@@ -1013,9 +1161,19 @@ paths:
               properties:
                 archived:
                   type: boolean
+            example:
+              archived: true
       responses:
         200:
           description: Board archive status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Board archive status updated successfully"
         401:
           description: Unauthorized
           content:
@@ -1023,7 +1181,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /boards/{boardId}/favorite:
+  /boards/{boardId}/favorites:
     post:
       tags:
         - Boards
@@ -1047,9 +1205,19 @@ paths:
               properties:
                 favorite:
                   type: boolean
+            example:
+              favorite: true
       responses:
         200:
           description: Board favorite status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Board favorite status updated successfully"
         401:
           description: Unauthorized
           content:
@@ -1057,7 +1225,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /boards/templates:
+  /board-templates:
     get:
       tags:
         - Boards
@@ -1080,7 +1248,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /boards/{boardId}/duplicate:
+  /boards/{boardId}/duplicates:
     post:
       tags:
         - Boards
@@ -1107,9 +1275,17 @@ paths:
                 keepMembers:
                   type: boolean
                   default: false
+            example:
+              name: "Duplicate Board"
+              keepMembers: true
       responses:
         201:
           description: Board duplicated successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the duplicated board
           content:
             application/json:
               schema:
@@ -1144,9 +1320,24 @@ paths:
                 file:
                   type: string
                   format: binary
+            example:
+              file: "exampleFileContent"
       responses:
         201:
           description: Attachment added successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created attachment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Attachment added successfully"
         400:
           description: Invalid file format or size
           content:
@@ -1190,9 +1381,24 @@ paths:
               properties:
                 title:
                   type: string
+            example:
+              title: "New Checklist"
       responses:
         201:
           description: Checklist added successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created checklist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Checklist added successfully"
         401:
           description: Unauthorized
           content:
@@ -1227,6 +1433,15 @@ paths:
       responses:
         201:
           description: Comment added successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
         400:
           description: Invalid comment text
           content:
@@ -1241,6 +1456,122 @@ paths:
                 $ref: '#/components/schemas/Error'
         404:
           description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /comments:
+    get:
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      summary: Retrieve all comments
+      parameters:
+        - in: query
+          name: authorId
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: A list of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      summary: Add a new comment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentRequest'
+      responses:
+        201:
+          description: Comment created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        400:
+          description: Invalid comment format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /comments/{commentId}:
+    patch:
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      summary: Update a comment
+      parameters:
+        - in: path
+          name: commentId
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+            example:
+              text: "Updated comment text"
+      responses:
+        200:
+          description: Comment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        404:
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      summary: Remove a comment
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Comment deleted successfully
+        404:
+          description: Comment not found
           content:
             application/json:
               schema:

@@ -403,6 +403,26 @@ app.post('/logout', authenticateToken, (req, res) => {
   res.json({ message: 'Successfully logged out' });
 });
 
+app.post('/users', (req, res) => {
+  // ...
+});
+
+app.get('/comments', authenticateToken, (req, res) => {
+  // ...
+});
+
+app.post('/comments', authenticateToken, (req, res) => {
+  // ...
+});
+
+app.patch('/comments/:commentId', authenticateToken, (req, res) => {
+  // ...
+});
+
+app.delete('/comments/:commentId', authenticateToken, (req, res) => {
+  // ...
+});
+
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
   console.log(`API Docs available at http://localhost:${port}/docs`);
