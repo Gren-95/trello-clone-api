@@ -1,6 +1,6 @@
 # trello-clone-api
 
-A simple Trello clone built with React and Express.
+A simple Trello api clone built with React and Express.
 
 ## Getting Started
 
