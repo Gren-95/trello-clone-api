@@ -1,10 +1,16 @@
 # trello-clone-api
 
-A simple Trello api clone built with React and Express.
+A simple Trello API clone that provides basic kanban board functionality.
 
-## Getting Started
+## Quick Start
 
-### Installation & Setup
+The API is publicly accessible at: [https://bee-srv.me](https://bee-srv.me) (accessible only while this subject is being taught to me in school).
+
+You can explore the API documentation at: [https://bee-srv.me/docs](https://bee-srv.me/docs) (accessible only while this subject is being taught to me in school).
+
+## Self-Hosting
+
+If you prefer to run the API locally:
 
 1. Clone the repository:
 
@@ -13,11 +19,12 @@ A simple Trello api clone built with React and Express.
     cd trello-clone-api
     ```
 
-2. Install and start the backend:
+2. Install dependencies and start the server:
 
     ```bash
     npm start
     ```
 
-    Once the backend server is successfully started, you can access it at [http://localhost:3000](http://localhost:3000).
-    For comprehensive API documentation, visit [http://localhost:3000/docs](http://localhost:3000/docs) while the server is running.
+    The local server will be available at:
+    - API: [http://localhost:3000](http://localhost:3000)
+    - Documentation: [http://localhost:3000/docs](http://localhost:3000/docs)
