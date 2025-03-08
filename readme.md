@@ -19,8 +19,5 @@ A simple Trello api clone built with React and Express.
     npm start
     ```
 
-    The backend server will start at [http://localhost:3000](http://localhost:3000)
-
-### API Documentation
-
-The API documentation is available at [http://localhost:3000/docs](http://localhost:3000/docs) when the backend server is running.
+    Once the backend server is successfully started, you can access it at [http://localhost:3000](http://localhost:3000).
+    For comprehensive API documentation, visit [http://localhost:3000/docs](http://localhost:3000/docs) while the server is running.

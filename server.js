@@ -1,429 +1,701 @@
 const express = require('express');
-const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
-const cors = require('cors');
 const path = require('path');
-const swaggerDocument = YAML.load('./openapi.yaml');
-const app = express();
-const port = process.env.PORT || 3000;
 const jwt = require('jsonwebtoken');
 
-app.use(cors());
+const app = express();
+const port = 3000;
+
+// Load OpenAPI specification
+const swaggerDocument = YAML.load(path.join(__dirname, 'openapi.yaml'));
+
+// Middleware to parse JSON
 app.use(express.json());
 
-// Load OpenAPI specification from YAML file
-const swaggerDocumentYAML = YAML.load(path.join(__dirname, 'openapi.yaml'));
+// Add this line to enable parsing JSON in DELETE requests
+app.use((req, res, next) => {
+    if (req.method === 'DELETE' && req.headers['content-type'] === 'application/json') {
+        express.json()(req, res, next);
+    } else {
+        next();
+    }
+});
 
 // Serve Swagger UI
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Update in-memory storage to include users
+// JWT Authentication middleware
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Authentication token is required.' });
+    }
+
+    jwt.verify(token, 'your_jwt_secret', (err, user) => {
+        if (err) {
+            return res.status(403).json({ error: 'Invalid or expired token.' });
+        }
+        req.user = user;
+        next();
+    });
+};
+
+// In-memory storage (for demonstration purposes)
 let users = [];
 let boards = [];
 let lists = [];
 let cards = [];
+let comments = [];
 
-// Add JWT secret key (in production, this should be in environment variables)
-const JWT_SECRET = 'your-secret-key';
-const revokedTokens = new Set();
+// Add this helper function at the top
+const createErrorResponse = (message) => ({
+    error: message
+});
 
-// Authentication middleware
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+// User routes
+app.post('/users', (req, res) => {
+    const { username, password } = req.body;
 
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  // Check if token is revoked
-  if (revokedTokens.has(token)) {
-    return res.status(401).json({ error: 'Token has been revoked' });
-  }
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid token' });
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required.' });
     }
-    req.user = user;
-    req.token = token; // Store token for logout
-    next();
-  });
-};
 
-// Login endpoint (for testing purposes)
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  
-  const user = users.find(u => u.username === username && u.password === password);
-  if (user) {
-    const token = jwt.sign({ userId: user.id, username }, JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token });
-  } else {
-    const userExists = users.find(u => u.username === username);
-    if (!userExists) {
-      res.status(401).json({ error: 'User not found' });
-    } else {
-      res.status(401).json({ error: 'Invalid password' });
+    // Check if username already exists
+    if (users.find(u => u.username === username)) {
+        return res.status(409).json({ error: 'Username already exists.' });
     }
-  }
+
+    const newUser = {
+        id: users.length + 1,
+        username,
+        password,
+        createdAt: new Date().toISOString()
+    };
+    users.push(newUser);
+
+    // Don't send password in response
+    const { password: _, ...userWithoutPassword } = newUser;
+    res.status(201).json(userWithoutPassword);
 });
 
-// Move register endpoint before the authentication middleware
-app.post('/register', (req, res) => {
-  const { username, password } = req.body;
-  
-  // Check if username already exists
-  if (users.find(u => u.username === username)) {
-    return res.status(400).json({ error: 'Username already taken' });
-  }
-  
-  const newUser = {
-    id: Date.now().toString(),
-    username,
-    password, // In production, this should be hashed
-    createdAt: new Date().toISOString()
-  };
-  
-  users.push(newUser);
-  
-  // Don't send password in response
-  const { password: _, ...userWithoutPassword } = newUser;
-  res.status(201).json(userWithoutPassword);
+app.get('/users', authenticateToken, (req, res) => {
+    // Don't send passwords in response
+    const safeUsers = users.map(({ password, ...user }) => user);
+    res.status(200).json(safeUsers);
 });
 
-// Add users endpoint - place this after the register endpoint but before the authentication middleware
-app.get('/users', (req, res) => {
-  // Return all users but remove passwords
-  const safeUsers = users.map(user => {
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-  });
-  
-  res.json(safeUsers);
+// Replace the PUT /users/password endpoint with this
+app.put('/users', authenticateToken, (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate request body
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required.' });
+    }
+
+    // Validate new password length
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+    }
+
+    // Find the user
+    const userIndex = users.findIndex(u => u.id === req.user.id);
+    if (userIndex === -1) {
+        return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Verify current password
+    if (users[userIndex].password !== currentPassword) {
+        return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+
+    // Update password
+    users[userIndex].password = newPassword;
+
+    res.status(200).json({ message: 'Password updated successfully' });
 });
 
-// Fix authentication middleware to exclude both login and register routes
-app.use('/*', (req, res, next) => {
-  if (req.path === '/login' || req.path === '/register' || req.path === '/docs') {
-    return next();
-  }
-  authenticateToken(req, res, next);
+app.delete('/users', authenticateToken, (req, res) => {
+    // Only allow users to delete their own account
+    users = users.filter(u => u.id !== req.user.id);
+    res.status(204).send();
 });
 
-// GET /boards
+// Authentication routes
+app.post('/sessions', (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required.' });
+    }
+
+    const user = users.find(u => u.username === username && u.password === password);
+    if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    const token = jwt.sign({ id: user.id, username: user.username }, 'your_jwt_secret', { expiresIn: '1h' });
+    res.status(200).json({ token });
+});
+
+app.post('/sessions/logout', authenticateToken, (req, res) => {
+    // In a real implementation, you would invalidate the token
+    res.status(200).json({ message: 'Successfully logged out.' });
+});
+
+
+// Board routes
+app.post('/boards', authenticateToken, (req, res) => {
+    const { name } = req.body;
+    
+    if (!name) {
+        return res.status(400).json(createErrorResponse('Board name is required.'));
+    }
+
+    const newBoard = {
+        id: boards.length + 1,
+        name,
+        userId: req.user.id,
+        createdAt: new Date().toISOString(),
+        isArchived: false,
+        isTemplate: false,
+        isFavorite: false,
+        members: [{ userId: req.user.id, role: 'owner' }]
+    };
+    
+    boards.push(newBoard);
+
+    // Set Location header
+    const location = `/boards/${newBoard.id}`;
+    res.setHeader('Location', location);
+    
+    res.status(201).json(newBoard);
+});
+
 app.get('/boards', authenticateToken, (req, res) => {
-  const userBoards = boards.filter(board => board.userId === req.user.userId);
-  res.status(200).json(userBoards);
+    const userBoards = boards.filter(board => 
+        board.members.some(member => member.userId === req.user.id)
+    );
+    res.status(200).json(userBoards);
 });
 
-// POST /boards
-app.post('/boards', (req, res) => {
-  const { name } = req.body;
-  const newBoard = { 
-    id: Date.now().toString(), 
-    name, 
-    userId: req.user.userId,
-    createdAt: new Date().toISOString() 
-  };
-  boards.push(newBoard);
-  res.status(201).json(newBoard);
+app.get('/boards/:id', authenticateToken, (req, res) => {
+    const board = boards.find(b => b.id === parseInt(req.params.id));
+    
+    if (!board) {
+        return res.status(404).json({ error: 'Board not found.' });
+    }
+
+    if (!board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view this board.' });
+    }
+
+    res.status(200).json(board);
 });
 
-app.get('/boards/:boardId', authenticateToken, (req, res) => {
-  const board = boards.find(b => b.id === req.params.boardId);
-  
-  if (!board) {
-    return res.status(404).json({ error: 'Board not found' });
-  }
-  
-  if (board.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to view this board' });
-  }
-  
-  res.json(board);
+app.put('/boards', authenticateToken, (req, res) => {
+    // Validate required field
+    if (!req.body.id) {
+        return res.status(400).json({ error: 'Board ID is required.' });
+    }
+
+    // Convert id to number if it's a string
+    const boardId = typeof req.body.id === 'string' ? parseInt(req.body.id) : req.body.id;
+
+    // Find the board
+    const boardIndex = boards.findIndex(b => b.id === boardId);
+    if (boardIndex === -1) {
+        return res.status(404).json({ error: 'Board not found.' });
+    }
+
+    const board = boards[boardIndex];
+    
+    // Check if user has permission to update the board
+    if (!board.members.some(member => 
+        member.userId === req.user.id && 
+        ['owner', 'admin'].includes(member.role)
+    )) {
+        return res.status(403).json({ error: 'Not authorized to update this board.' });
+    }
+
+    // Extract only allowed fields to update
+    const {
+        name,
+        background,
+        isTemplate,
+        isFavorite,
+        isArchived
+    } = req.body;
+
+    // Update board properties if provided
+    if (name && typeof name === 'string') board.name = name;
+    if (background && typeof background === 'string') board.background = background;
+    if (typeof isTemplate === 'boolean') board.isTemplate = isTemplate;
+    if (typeof isFavorite === 'boolean') board.isFavorite = isFavorite;
+    if (typeof isArchived === 'boolean') board.isArchived = isArchived;
+
+    // Update timestamp
+    board.updatedAt = new Date().toISOString();
+
+    res.status(200).json(board);
+});
+
+// Replace the existing DELETE /boards/:id endpoint with this
+app.delete('/boards', authenticateToken, (req, res) => {
+    // Validate required field
+    if (!req.body.id) {
+        return res.status(400).json({ error: 'Board ID is required.' });
+    }
+
+    // Convert id to number if it's a string
+    const boardId = typeof req.body.id === 'string' ? parseInt(req.body.id) : req.body.id;
+    
+    const boardIndex = boards.findIndex(b => b.id === boardId);
+    
+    if (boardIndex === -1) {
+        return res.status(404).json({ error: 'Board not found.' });
+    }
+
+    const board = boards[boardIndex];
+    if (!board.members.some(member => member.userId === req.user.id && member.role === 'owner')) {
+        return res.status(403).json({ error: 'Not authorized to delete this board.' });
+    }
+
+    boards.splice(boardIndex, 1);
+    res.status(204).send();
+});
+
+// List routes
+app.post('/boards/:boardId/lists', authenticateToken, (req, res) => {
+    const { boardId } = req.params;
+    const { title } = req.body;
+
+    if (!title) {
+        return res.status(400).json({ error: 'Title is required.' });
+    }
+
+    const board = boards.find(b => b.id === parseInt(boardId));
+    if (!board) {
+        return res.status(404).json({ error: 'Board not found.' });
+    }
+
+    if (!board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to create lists in this board.' });
+    }
+
+    const newList = {
+        id: lists.length + 1,
+        boardId: parseInt(boardId),
+        userId: req.user.id,
+        title,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    
+    lists.push(newList);
+
+    // Set Location header
+    const location = `/lists/${newList.id}`;
+    res.setHeader('Location', location);
+    
+    res.status(201).json(newList);
 });
 
 app.get('/boards/:boardId/lists', authenticateToken, (req, res) => {
-  const board = boards.find(b => b.id === req.params.boardId);
-  
-  if (!board) {
-    return res.status(404).json({ error: 'Board not found' });
-  }
-  
-  if (board.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to view this board\'s lists' });
-  }
-  
-  const boardLists = lists.filter(list => list.boardId === req.params.boardId);
-  res.json(boardLists);
+    const { boardId } = req.params;
+    const board = boards.find(b => b.id === parseInt(boardId));
+    
+    if (!board) {
+        return res.status(404).json({ error: 'Board not found.' });
+    }
+
+    if (!board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view lists in this board.' });
+    }
+
+    const boardLists = lists.filter(list => list.boardId === parseInt(boardId));
+    res.status(200).json(boardLists);
 });
 
-app.post('/boards/:boardId/lists', (req, res) => {
-  const { title } = req.body;
-  const board = boards.find(b => b.id === req.params.boardId);
-  
-  // Check if board exists and user owns it
-  if (!board) {
-    return res.status(404).json({ error: 'Board not found' });
-  }
-  if (board.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to add lists to this board' });
-  }
+// Add this endpoint for getting a specific list
+app.get('/lists/:listId', (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const list = lists.find(l => l.id === listId);
+    
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
 
-  const newList = {
-    id: Date.now().toString(),
-    boardId: req.params.boardId,
-    userId: req.user.userId,
-    title,
-    createdAt: new Date().toISOString()
-  };
-  lists.push(newList);
-  res.status(201).json(newList);
+    res.status(200).json(list);
 });
 
-app.post('/lists/:listId/cards', (req, res) => {
-  const { title, description } = req.body;
-  const list = lists.find(l => l.id === req.params.listId);
-  
-  if (!list) {
-    return res.status(404).json({ error: 'List not found' });
-  }
-  
-  // Check if user owns the board that contains this list
-  const board = boards.find(b => b.id === list.boardId);
-  if (!board || board.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to add cards to this list' });
-  }
+// Add PUT endpoint for updating a list
+app.put('/lists/:listId', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const { title, position } = req.body;
 
-  const newCard = {
-    id: Date.now().toString(),
-    listId: req.params.listId,
-    userId: req.user.userId,
-    title,
-    description,
-    createdAt: new Date().toISOString()
-  };
-  cards.push(newCard);
-  res.status(201).json(newCard);
+    const listIndex = lists.findIndex(l => l.id === listId);
+    if (listIndex === -1) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    const list = lists[listIndex];
+
+    // Check if user has permission to update the list
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to update this list.' });
+    }
+
+    // Update only provided fields
+    if (title !== undefined) {
+        list.title = title;
+    }
+    if (position !== undefined && Number.isInteger(position) && position >= 0) {
+        list.position = position;
+    }
+
+    list.updatedAt = new Date().toISOString();
+
+    res.status(200).json(list);
 });
 
-app.get('/lists/:listId/cards', (req, res) => {
-  const list = lists.find(l => l.id === req.params.listId);
-  
-  if (!list) {
-    return res.status(404).json({ error: 'List not found' });
-  }
-  
-  // Check if user owns the board that contains this list
-  const board = boards.find(b => b.id === list.boardId);
-  if (!board || board.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to view cards in this list' });
-  }
+// Add DELETE endpoint for lists
+app.delete('/lists/:listId', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    
+    const listIndex = lists.findIndex(l => l.id === listId);
+    if (listIndex === -1) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
 
-  const listCards = cards.filter(card => card.listId === req.params.listId);
-  res.json(listCards);
+    const list = lists[listIndex];
+
+    // Check if user has permission to delete the list
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to delete this list.' });
+    }
+
+    lists.splice(listIndex, 1);
+    res.status(204).send();
 });
 
-app.delete('/boards/:boardId', (req, res) => {
-  const boardId = req.params.boardId;
-  const board = boards.find(b => b.id === boardId);
-  
-  if (!board) {
-    return res.status(404).json({ error: 'Board not found' });
-  }
-  
-  if (board.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to delete this board' });
-  }
-  
-  boards = boards.filter(board => board.id !== boardId);
-  // Also delete associated lists and cards
-  const boardLists = lists.filter(list => list.boardId === boardId);
-  const listIds = boardLists.map(list => list.id);
-  lists = lists.filter(list => list.boardId !== boardId);
-  cards = cards.filter(card => !listIds.includes(card.listId));
-  res.status(204).send();
+// Card routes
+app.get('/lists/:listId/cards', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const list = lists.find(l => l.id === listId);
+    
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    // Check if user has permission to view cards
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view cards in this list.' });
+    }
+
+    const listCards = cards.filter(card => card.listId === listId);
+    res.status(200).json(listCards);
 });
 
-app.delete('/lists/:listId', (req, res) => {
-  const listId = req.params.listId;
-  const list = lists.find(l => l.id === listId);
-  
-  if (!list) {
-    return res.status(404).json({ error: 'List not found' });
-  }
-  
-  // Check if user owns the board that contains this list
-  const board = boards.find(b => b.id === list.boardId);
-  if (!board || board.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to delete this list' });
-  }
+app.post('/lists/:listId/cards', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const { title, description, dueDate, labels } = req.body;
 
-  lists = lists.filter(list => list.id !== listId);
-  // Also delete associated cards
-  cards = cards.filter(card => card.listId !== listId);
-  res.status(204).send();
+    // Add validation for required fields according to OpenAPI spec
+    if (!title) {
+        return res.status(400).json({ error: 'Title is required.' });
+    }
+    if (!listId) {
+        return res.status(400).json({ error: 'List ID is required.' });
+    }
+
+    const list = lists.find(l => l.id === listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    // Check if user has permission to create cards
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to create cards in this list.' });
+    }
+
+    const newCard = {
+        id: cards.length + 1,
+        listId,
+        userId: req.user.id,
+        title,
+        description: description || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        dueDate: dueDate || null,
+        labels: labels || [],
+        attachments: [],
+        checklist: [],
+        comments: []
+    };
+
+    cards.push(newCard);
+
+    // Set Location header
+    const location = `/cards/${newCard.id}`;
+    res.setHeader('Location', location);
+    
+    res.status(201).json(newCard);
 });
 
-app.delete('/cards/:cardId', (req, res) => {
-  const cardId = req.params.cardId;
-  const card = cards.find(c => c.id === cardId);
-  
-  if (!card) {
-    return res.status(404).json({ error: 'Card not found' });
-  }
-  
-  // Check if user owns the board that contains this card
-  const list = lists.find(l => l.id === card.listId);
-  const board = boards.find(b => b.id === list.boardId);
-  if (!board || board.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to delete this card' });
-  }
+app.get('/cards/:cardId', authenticateToken, (req, res) => {
+    const cardId = parseInt(req.params.cardId);
+    const card = cards.find(c => c.id === cardId);
+    
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
 
-  cards = cards.filter(card => card.id !== cardId);
-  res.status(204).send();
+    // Check if user has permission to view card
+    const list = lists.find(l => l.id === card.listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view this card.' });
+    }
+
+    res.status(200).json(card);
 });
 
-app.patch('/cards/:cardId/move', (req, res) => {
-  const { cardId } = req.params;
-  const { listId } = req.body;
-  
-  const card = cards.find(c => c.id === cardId);
-  if (!card) {
-    return res.status(404).json({ error: 'Card not found' });
-  }
-  
-  // Check if user owns both the source and target boards
-  const sourceList = lists.find(l => l.id === card.listId);
-  const targetList = lists.find(l => l.id === listId);
-  const sourceBoard = boards.find(b => b.id === sourceList.boardId);
-  const targetBoard = boards.find(b => b.id === targetList.boardId);
-  
-  if (!sourceBoard || !targetBoard || 
-      sourceBoard.userId !== req.user.userId || 
-      targetBoard.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to move this card' });
-  }
+app.put('/cards/:cardId', authenticateToken, (req, res) => {
+    const cardId = parseInt(req.params.cardId);
+    const { title, description, dueDate, labels, listId, position } = req.body;
 
-  const cardIndex = cards.findIndex(c => c.id === cardId);
-  cards[cardIndex] = {
-    ...cards[cardIndex],
-    listId,
-    updatedAt: new Date().toISOString()
-  };
-  
-  res.json(cards[cardIndex]);
-});
+    const cardIndex = cards.findIndex(c => c.id === cardId);
+    if (cardIndex === -1) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
 
-app.patch('/boards/:boardId', (req, res) => {
-  const { boardId } = req.params;
-  const { name } = req.body;
-  
-  const board = boards.find(b => b.id === boardId);
-  if (!board) {
-    return res.status(404).json({ error: 'Board not found' });
-  }
-  
-  if (board.userId !== req.user.userId) {
-    return res.status(403).json({ error: 'Not authorized to modify this board' });
-  }
-  
-  board.name = name;
-  res.json(board);
-});
+    const card = cards[cardIndex];
+    const currentList = lists.find(l => l.id === card.listId);
+    if (!currentList) {
+        return res.status(404).json({ error: 'Current list not found.' });
+    }
 
-app.put('/lists/:listId', (req, res) => {
-  const { listId } = req.params;
-  const { title, boardId } = req.body;
-  
-  const listIndex = lists.findIndex(l => l.id === listId);
-  if (listIndex === -1) {
-    return res.status(404).json({ 
-      error: 'List not found',
-      message: `No list found with ID: ${listId}`
-    });
-  }
-  
-  lists[listIndex] = {
-    ...lists[listIndex],
-    title: title || lists[listIndex].title,
-    boardId: boardId || lists[listIndex].boardId,
-    updatedAt: new Date().toISOString()
-  };
-  
-  res.json(lists[listIndex]);
-});
+    // Check board membership for current list
+    const currentBoard = boards.find(b => b.id === currentList.boardId);
+    if (!currentBoard || !currentBoard.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to update this card.' });
+    }
 
-app.put('/cards/:cardId', (req, res) => {
-  const { cardId } = req.params;
-  const { title, description, listId } = req.body;
-  
-  const cardIndex = cards.findIndex(c => c.id === cardId);
-  if (cardIndex === -1) {
-    return res.status(404).json({ error: 'Card not found' });
-  }
-  
-  cards[cardIndex] = {
-    ...cards[cardIndex],
-    title: title || cards[cardIndex].title,
-    description: description || cards[cardIndex].description,
-    listId: listId || cards[cardIndex].listId,
-    updatedAt: new Date().toISOString()
-  };
-  
-  res.json(cards[cardIndex]);
-});
-
-// Add logout endpoint before the authentication middleware
-app.post('/logout', authenticateToken, (req, res) => {
-  // Add token to revoked tokens set
-  revokedTokens.add(req.token);
-  
-  // In a production environment, you might want to clean up old tokens
-  // Here's a simple cleanup of tokens that are over 24 hours old
-  const cleanupTokens = () => {
-    revokedTokens.forEach(token => {
-      try {
-        const decoded = jwt.decode(token);
-        if (decoded.exp * 1000 < Date.now()) {
-          revokedTokens.delete(token);
+    // If moving to a different list, verify the target list exists and user has permission
+    if (listId !== undefined) {
+        // Convert listId to number if it's a string
+        const targetListId = typeof listId === 'string' ? parseInt(listId) : listId;
+        const targetList = lists.find(l => l.id === targetListId);
+        if (!targetList) {
+            return res.status(404).json({ error: 'Target list not found.' });
         }
-      } catch (err) {
-        // If token is invalid, remove it
-        revokedTokens.delete(token);
-      }
-    });
-  };
 
-  // Clean up old tokens
-  cleanupTokens();
+        // Verify target list is in the same board
+        if (targetList.boardId !== currentList.boardId) {
+            return res.status(403).json({ error: 'Cannot move card to a different board.' });
+        }
 
-  res.json({ message: 'Successfully logged out' });
+        card.listId = targetListId;
+    }
+
+    // Update other fields if provided
+    if (title !== undefined) card.title = title;
+    if (description !== undefined) card.description = description;
+    if (dueDate !== undefined) card.dueDate = dueDate;
+    if (labels !== undefined) card.labels = labels;
+    if (position !== undefined && Number.isInteger(position) && position >= 0) {
+        card.position = position;
+    }
+
+    card.updatedAt = new Date().toISOString();
+
+    res.status(200).json(card);
 });
 
-app.post('/users', (req, res) => {
-  // ...
+app.delete('/cards/:cardId', authenticateToken, (req, res) => {
+    const cardId = parseInt(req.params.cardId);
+    
+    const cardIndex = cards.findIndex(c => c.id === cardId);
+    if (cardIndex === -1) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+
+    const card = cards[cardIndex];
+    const list = lists.find(l => l.id === card.listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to delete this card.' });
+    }
+
+    cards.splice(cardIndex, 1);
+    res.status(204).send();
 });
 
+app.post('/cards/:cardId/checklist', authenticateToken, (req, res) => {
+    const cardId = parseInt(req.params.cardId);
+    const { title } = req.body;
+
+    if (!title) {
+        return res.status(400).json({ error: 'Title is required.' });
+    }
+
+    const card = cards.find(c => c.id === cardId);
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+
+    const list = lists.find(l => l.id === card.listId);
+    const board = boards.find(b => b.id === list.boardId);
+    
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to add checklist to this card.' });
+    }
+
+    const newChecklist = {
+        id: (card.checklist.length + 1).toString(),
+        title,
+        items: []
+    };
+
+    card.checklist.push(newChecklist);
+
+    // Set Location header
+    const location = `/cards/${cardId}/checklist/${newChecklist.id}`;
+    res.setHeader('Location', location);
+    
+    res.status(201).json({ message: 'Checklist added successfully' });
+});
+
+app.post('/cards/:cardId/comments', authenticateToken, (req, res) => {
+    const cardId = parseInt(req.params.cardId);
+    const { text } = req.body;
+
+    if (!text) {
+        return res.status(400).json({ error: 'Comment text is required.' });
+    }
+
+    const card = cards.find(c => c.id === cardId);
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+
+    const list = lists.find(l => l.id === card.listId);
+    const board = boards.find(b => b.id === list.boardId);
+    
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to comment on this card.' });
+    }
+
+    const newComment = {
+        id: (card.comments.length + 1).toString(),
+        userId: req.user.id,
+        text,
+        createdAt: new Date().toISOString()
+    };
+
+    card.comments.push(newComment);
+
+    // Set Location header
+    const location = `/cards/${cardId}/comments/${newComment.id}`;
+    res.setHeader('Location', location);
+    
+    res.status(201).json(newComment);
+});
+
+// Comments routes
 app.get('/comments', authenticateToken, (req, res) => {
-  // ...
+    const { authorId } = req.query;
+    
+    let filteredComments = [...comments];
+    
+    if (authorId) {
+        filteredComments = filteredComments.filter(comment => comment.userId === authorId);
+    }
+    
+    res.status(200).json(filteredComments);
 });
 
 app.post('/comments', authenticateToken, (req, res) => {
-  // ...
+    const { text } = req.body;
+
+    // Validate required fields
+    if (!text) {
+        return res.status(400).json({ error: 'Text field is required.' });
+    }
+
+    const newComment = {
+        id: comments.length + 1,
+        text,
+        userId: req.user.id,
+        createdAt: new Date().toISOString()
+    };
+
+    comments.push(newComment);
+
+    // Set Location header
+    const location = `/comments/${newComment.id}`;
+    res.setHeader('Location', location);
+    
+    res.status(201).json(newComment);
 });
 
 app.patch('/comments/:commentId', authenticateToken, (req, res) => {
-  // ...
+    const { text } = req.body;
+    const commentId = parseInt(req.params.commentId);
+
+    const commentIndex = comments.findIndex(c => c.id === commentId);
+    if (commentIndex === -1) {
+        return res.status(404).json({ error: 'Comment not found.' });
+    }
+
+    // Check if user owns the comment
+    if (comments[commentIndex].userId !== req.user.id) {
+        return res.status(403).json({ error: 'Not authorized to update this comment.' });
+    }
+
+    // Update only provided fields
+    if (text !== undefined) {
+        comments[commentIndex].text = text;
+    }
+
+    res.status(200).json(comments[commentIndex]);
 });
 
 app.delete('/comments/:commentId', authenticateToken, (req, res) => {
-  // ...
+    const commentId = parseInt(req.params.commentId);
+    
+    const commentIndex = comments.findIndex(c => c.id === commentId);
+    if (commentIndex === -1) {
+        return res.status(404).json({ error: 'Comment not found.' });
+    }
+
+    // Check if user owns the comment
+    if (comments[commentIndex].userId !== req.user.id) {
+        return res.status(403).json({ error: 'Not authorized to delete this comment.' });
+    }
+
+    comments.splice(commentIndex, 1);
+    res.status(204).send();
 });
 
+// Start the server
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-  console.log(`API Docs available at http://localhost:${port}/docs`);
-});
+    console.log(`API is running at http://localhost:${port}`);
+    console.log(`Documentation is running at http://localhost:${port}/docs`);
+}); 

@@ -11,14 +11,14 @@ servers:
 tags:
   - name: Authentication
     description: User authentication endpoints
+  - name: Users
+    description: User management endpoints
   - name: Boards
     description: Board management endpoints
   - name: Lists
     description: List management endpoints
   - name: Cards
     description: Card management endpoints
-  - name: Users
-    description: User management endpoints
   - name: Comments
     description: Comment management endpoints
 
@@ -115,19 +115,6 @@ components:
           type: array
           items:
             type: string
-        attachments:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-              name:
-                type: string
-              url:
-                type: string
-              type:
-                type: string
         checklist:
           type: array
           items:
@@ -256,8 +243,8 @@ paths:
             schema:
               $ref: '#/components/schemas/LoginRequest'
             example:
-              username: "exampleUser"
-              password: "examplePassword"
+              username: "newUser"
+              password: "securePassword"
       responses:
         200:
           description: Successful session creation
@@ -318,7 +305,7 @@ paths:
     post:
       tags:
         - Users
-      security: []
+      security: []  # No authentication required for creating a user
       summary: Create a new user
       requestBody:
         required: true
@@ -358,24 +345,53 @@ paths:
         - Users
       security:
         - bearerAuth: []
-      summary: Update a user
+      summary: Change user password
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 6
             example:
-              username: "updatedUser"
+              userId: "1"
+              currentPassword: "securePassword"
+              newPassword: "evenmoresecurePassword"
       responses:
         200:
-          description: User updated successfully
+          description: Password changed successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password updated successfully"
+        400:
+          description: Invalid password format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         401:
-          description: Unauthorized
+          description: Current password is incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: User not found
           content:
             application/json:
               schema:
@@ -385,7 +401,7 @@ paths:
         - Users
       security:
         - bearerAuth: []
-      summary: Delete a user
+      summary: Delete current user's account
       responses:
         204:
           description: User deleted successfully
@@ -474,7 +490,32 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Board'
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  description: ID of the board to update
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                background:
+                  type: string
+                isTemplate:
+                  type: boolean
+                isFavorite:
+                  type: boolean
+                isArchived:
+                  type: boolean
+            example:
+              id: 1
+              name: "Updated Board Name"
+              background: "#FFFFFF"
+              isTemplate: false
+              isFavorite: false
+              isArchived: false
       responses:
         200:
           description: Board updated successfully
@@ -482,8 +523,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Board'
+        400:
+          description: Board ID is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         401:
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden - Not authorized to update this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Board not found
           content:
             application/json:
               schema:
@@ -494,11 +553,43 @@ paths:
       security:
         - bearerAuth: []
       summary: Delete a board
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  description: ID of the board to delete
+            example:
+              id: 1
       responses:
         204:
           description: Board deleted successfully
+        400:
+          description: Board ID is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         401:
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden - Not authorized to delete this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Board not found
           content:
             application/json:
               schema:
@@ -509,7 +600,7 @@ paths:
       tags:
         - Boards
       security:
-        - bearerAuth: []  # Require authentication for GET
+        - bearerAuth: []
       summary: Get a specific board
       parameters:
         - in: path
@@ -536,123 +627,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    put:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Update a board
-      parameters:
-        - in: path
-          name: boardId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                background:
-                  type: string
-                isTemplate:
-                  type: boolean
-            example:
-              name: "Updated Board Name"
-              background: "#FFFFFF"
-              isTemplate: false
-      responses:
-        200:
-          description: Board updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Board'
-        403:
-          description: Forbidden - Not authorized to update this board
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         404:
           description: Board not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    delete:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Delete a board
-      parameters:
-        - in: path
-          name: boardId
-          required: true
-          schema:
-            type: string
-      responses:
-        204:
-          description: Board deleted successfully
-        403:
-          description: Forbidden - Not authorized to delete this board
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        404:
-          description: Board not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    patch:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Update board name
-      parameters:
-        - in: path
-          name: boardId
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  minLength: 1
-                  maxLength: 100
-            example:
-              name: "Partially Updated Board Name"
-      responses:
-        200:
-          description: Board updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Board'
-        403:
-          description: Forbidden - Not authorized to modify this board
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        404:
-          description: Board not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+              example:
+                error: "Board not found."
 
   /boards/{boardId}/lists:
     get:
@@ -983,9 +965,15 @@ paths:
                     type: string
                 listId:
                   type: string
+                  description: The ID of the list to move the card to
                 position:
                   type: integer
                   minimum: 0
+            example:
+              title: "Updated Card Title"
+              description: "Updated description"
+              listId: "newListId"
+              position: 1
       responses:
         200:
           description: Card updated successfully
@@ -1000,7 +988,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Card not found
+          description: Card or list not found
           content:
             application/json:
               schema:
@@ -1028,330 +1016,6 @@ paths:
                 $ref: '#/components/schemas/Error'
         404:
           description: Card not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /cards/{cardId}/move:
-    patch:
-      tags:
-        - Cards
-      security:
-        - bearerAuth: []
-      summary: Move a card to a different list
-      parameters:
-        - in: path
-          name: cardId
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                listId:
-                  type: string
-                  description: The ID of the list to move the card to
-            example:
-              listId: "newListId"
-      responses:
-        200:
-          description: Card moved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Card'
-        403:
-          description: Forbidden - Not authorized to move this card
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        404:
-          description: Card or list not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /boards/{boardId}/shares:
-    post:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Share board with other users
-      parameters:
-        - in: path
-          name: boardId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - role
-              properties:
-                userId:
-                  type: string
-                role:
-                  type: string
-                  enum: [admin, member]
-            example:
-              userId: "user123"
-              role: "member"
-      responses:
-        200:
-          description: Board shared successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Board shared successfully"
-        400:
-          description: Invalid user ID or role
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        404:
-          description: Board or user not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /boards/{boardId}/archives:
-    post:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Archive or unarchive a board
-      parameters:
-        - in: path
-          name: boardId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - archived
-              properties:
-                archived:
-                  type: boolean
-            example:
-              archived: true
-      responses:
-        200:
-          description: Board archive status updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Board archive status updated successfully"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /boards/{boardId}/favorites:
-    post:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Add or remove board from favorites
-      parameters:
-        - in: path
-          name: boardId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - favorite
-              properties:
-                favorite:
-                  type: boolean
-            example:
-              favorite: true
-      responses:
-        200:
-          description: Board favorite status updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Board favorite status updated successfully"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /board-templates:
-    get:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Get all board templates
-      responses:
-        200:
-          description: List of board templates
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Board'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /boards/{boardId}/duplicates:
-    post:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Create a copy of a board
-      parameters:
-        - in: path
-          name: boardId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-              properties:
-                name:
-                  type: string
-                keepMembers:
-                  type: boolean
-                  default: false
-            example:
-              name: "Duplicate Board"
-              keepMembers: true
-      responses:
-        201:
-          description: Board duplicated successfully
-          headers:
-            Location:
-              schema:
-                type: string
-              description: URL of the duplicated board
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Board'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /cards/{cardId}/attachments:
-    post:
-      tags:
-        - Cards
-      security:
-        - bearerAuth: []
-      summary: Add attachment to card
-      parameters:
-        - in: path
-          name: cardId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-            example:
-              file: "exampleFileContent"
-      responses:
-        201:
-          description: Attachment added successfully
-          headers:
-            Location:
-              schema:
-                type: string
-              description: URL of the created attachment
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Attachment added successfully"
-        400:
-          description: Invalid file format or size
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        413:
-          description: File too large
           content:
             application/json:
               schema:
@@ -1474,6 +1138,7 @@ paths:
           required: false
           schema:
             type: string
+          description: Filter comments by author ID
       responses:
         200:
           description: A list of comments
