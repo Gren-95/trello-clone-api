@@ -77,6 +77,18 @@ app.use('/en',
     }
 );
 
+// Serve Estonian docs at /et
+app.use('/et', 
+    swaggerUi.serve, 
+    (req, res) => {
+        let html = swaggerUi.generateHTML(swaggerDocET, {
+            ...swaggerUiOpts,
+            customSiteTitle: "API Dokumentatsioon - Eesti"
+        });
+        res.send(html);
+    }
+);
+
 // Also serve the YAML files directly
 app.get('/en/openapi.yaml', (req, res) => {
     res.sendFile(path.join(__dirname, 'docs/en/openapi.yaml'));
@@ -84,6 +96,16 @@ app.get('/en/openapi.yaml', (req, res) => {
 
 app.get('/et/openapi.yaml', (req, res) => {
     res.sendFile(path.join(__dirname, 'docs/et/openapi.yaml'));
+});
+
+// Add CORS middleware for YAML files
+app.use((req, res, next) => {
+    if (req.path.endsWith('openapi.yaml')) {
+        res.header('Access-Control-Allow-Origin', 'https://docs.bee-srv.me');
+        res.header('Access-Control-Allow-Methods', 'GET');
+        res.header('Access-Control-Allow-Headers', 'Content-Type');
+    }
+    next();
 });
 
 // Middleware to parse JSON
@@ -773,6 +795,11 @@ app.put('/users/:id/password', authenticateToken, (req, res) => {
     users[userIndex].password = newPassword;
 
     res.status(200).json({ message: 'Password updated successfully' });
+});
+
+// Redirect root to English docs
+app.get('/', (req, res) => {
+    res.redirect('/en');
 });
 
 // Start the server
