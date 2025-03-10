@@ -54,11 +54,11 @@ const swaggerUiOpts = {
         docExpansion: 'list',
         urls: [
             {
-                url: 'https://bee-srv.me/docs/en/openapi.yaml',
+                url: 'https://docs.bee-srv.me/en/openapi.yaml',
                 name: 'English'
             },
             {
-                url: 'https://bee-srv.me/docs/et/openapi.yaml',
+                url: 'https://docs.bee-srv.me/et/openapi.yaml',
                 name: 'Estonian'
             }
         ]
@@ -77,18 +77,14 @@ app.use('/en',
     }
 );
 
-// Serve Estonian docs at /et
-app.use('/et', 
-    swaggerUi.serve, 
-    (req, res) => {
-        let html = swaggerUi.generateHTML(swaggerDocET, {
-            ...swaggerUiOpts,
-            customSiteTitle: "API Dokumentatsioon - Eesti"
-        });
-        res.send(html);
-    }
-);
+// Also serve the YAML files directly
+app.get('/en/openapi.yaml', (req, res) => {
+    res.sendFile(path.join(__dirname, 'docs/en/openapi.yaml'));
+});
 
+app.get('/et/openapi.yaml', (req, res) => {
+    res.sendFile(path.join(__dirname, 'docs/et/openapi.yaml'));
+});
 
 // Middleware to parse JSON
 app.use(express.json());
