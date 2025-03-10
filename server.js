@@ -79,10 +79,6 @@ app.use('/et',
     }
 );
 
-// Redirect /docs to /docs/en by default
-app.get('/', (req, res) => {
-    res.redirect('/en');
-});
 
 // Middleware to parse JSON
 app.use(express.json());
