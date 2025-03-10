@@ -7,8 +7,8 @@ A simple Trello API clone that provides basic kanban board functionality.
 The API is publicly accessible at: [https://bee-srv.me](https://bee-srv.me)
 
 You can explore the API documentation at:
-- English: [https://bee-srv.me/docs/en](https://bee-srv.me/docs/en)
-- Estonian: [https://bee-srv.me/docs/et](https://bee-srv.me/docs/et)
+- English: [https://docs.bee-srv.me/en](https://docs.bee-srv.me/en)
+- Estonian: [https://docs.bee-srv.me/et](https://docs.bee-srv.me/et)
 
 ## Self-Hosting
 

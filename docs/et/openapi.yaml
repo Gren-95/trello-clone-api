@@ -5,8 +5,10 @@ info:
   version: 1.0.0
 
 servers:
-  - url: /
-    description: Server
+  - url: https://bee-srv.me
+    description: Tootmisserver
+  - url: http://localhost:3000
+    description: Lokaalne Arendusserver
 
 tags:
   - name: Autentimine

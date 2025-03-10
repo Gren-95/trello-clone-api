@@ -5,8 +5,10 @@ info:
   version: 1.0.0
 
 servers:
-  - url: /
-    description: Server
+  - url: https://bee-srv.me
+    description: Production Server
+  - url: http://localhost:3000
+    description: Local Development Server
 
 tags:
   - name: Authentication

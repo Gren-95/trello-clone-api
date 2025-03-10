@@ -51,11 +51,21 @@ try {
 const swaggerUiOpts = {
     explorer: true,
     swaggerOptions: {
-        docExpansion: 'list'
+        docExpansion: 'list',
+        urls: [
+            {
+                url: 'https://bee-srv.me/docs/en/openapi.yaml',
+                name: 'English'
+            },
+            {
+                url: 'https://bee-srv.me/docs/et/openapi.yaml',
+                name: 'Estonian'
+            }
+        ]
     }
 };
 
-// Serve English docs at /docs/en
+// Serve English docs at /en
 app.use('/en', 
     swaggerUi.serve, 
     (req, res) => {
@@ -67,7 +77,7 @@ app.use('/en',
     }
 );
 
-// Serve Estonian docs at /docs/et
+// Serve Estonian docs at /et
 app.use('/et', 
     swaggerUi.serve, 
     (req, res) => {
@@ -771,7 +781,7 @@ app.put('/users/:id/password', authenticateToken, (req, res) => {
 
 // Start the server
 app.listen(port, () => {
-    console.log(`API is running at http://localhost:${port}`);
-    console.log(`Documentation is available in english: http://localhost:${port}/en`);
-    console.log(`Dokumentatsioon on kättesaadav eesti keeles: http://localhost:${port}/et`);
+    console.log(`API is running at https://bee-srv.me`);
+    console.log(`Documentation is available in English: https://docs.bee-srv.me/en`);
+    console.log(`Dokumentatsioon on kättesaadav eesti keeles: https://docs.bee-srv.me/et`);
 }); 
