@@ -4,9 +4,11 @@ A simple Trello API clone that provides basic kanban board functionality.
 
 ## Quick Start
 
-The API is publicly accessible at: [https://bee-srv.me](https://bee-srv.me) (accessible only while this subject is being taught to me in school).
+The API is publicly accessible at: [https://bee-srv.me](https://bee-srv.me)
 
-You can explore the API documentation at: [https://bee-srv.me/docs](https://bee-srv.me/docs) (accessible only while this subject is being taught to me in school).
+You can explore the API documentation at:
+- English: [https://bee-srv.me/docs/en](https://bee-srv.me/docs/en)
+- Estonian: [https://bee-srv.me/docs/et](https://bee-srv.me/docs/et)
 
 ## Self-Hosting
 
@@ -27,4 +29,6 @@ If you prefer to run the API locally:
 
     The local server will be available at:
     - API: [http://localhost:3000](http://localhost:3000)
-    - Documentation: [http://localhost:3000/docs](http://localhost:3000/docs)
+    - Documentation:
+      - English: [http://localhost:3000/docs/en](http://localhost:3000/docs/en)
+      - Estonian: [http://localhost:3000/docs/et](http://localhost:3000/docs/et)

@@ -3,12 +3,86 @@ const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
 
 const app = express();
 const port = 3000;
 
-// Load OpenAPI specification
-const swaggerDocument = YAML.load(path.join(__dirname, 'openapi.yaml'));
+// Load OpenAPI specifications with fallback
+let swaggerDocEN, swaggerDocET;
+
+// Try to load English docs
+try {
+    swaggerDocEN = YAML.load(path.join(__dirname, 'docs/en/openapi.yaml'));
+} catch (error) {
+    console.error('Error loading English documentation:', error.message);
+    try {
+        // Fallback to root openapi.yaml
+        swaggerDocEN = YAML.load(path.join(__dirname, 'openapi.yaml'));
+        console.log('Using fallback openapi.yaml for English documentation');
+        
+        // Ensure docs/en directory exists
+        if (!fs.existsSync(path.join(__dirname, 'docs/en'))) {
+            fs.mkdirSync(path.join(__dirname, 'docs/en'), { recursive: true });
+        }
+        
+        // Copy openapi.yaml to docs/en/
+        fs.copyFileSync(
+            path.join(__dirname, 'openapi.yaml'),
+            path.join(__dirname, 'docs/en/openapi.yaml')
+        );
+    } catch (fallbackError) {
+        console.error('Error loading fallback documentation:', fallbackError.message);
+        process.exit(1);
+    }
+}
+
+// Try to load Estonian docs
+try {
+    swaggerDocET = YAML.load(path.join(__dirname, 'docs/et/openapi.yaml'));
+} catch (error) {
+    console.error('Error loading Estonian documentation:', error.message);
+    // Don't use English as fallback, just exit
+    console.error('Estonian documentation is required');
+    process.exit(1);
+}
+
+// Setup Swagger UI instances
+const swaggerUiOpts = {
+    explorer: true,
+    swaggerOptions: {
+        docExpansion: 'list'
+    }
+};
+
+// Serve English docs at /docs/en
+app.use('/docs/en', 
+    swaggerUi.serve, 
+    (req, res) => {
+        let html = swaggerUi.generateHTML(swaggerDocEN, {
+            ...swaggerUiOpts,
+            customSiteTitle: "API Documentation - English"
+        });
+        res.send(html);
+    }
+);
+
+// Serve Estonian docs at /docs/et
+app.use('/docs/et', 
+    swaggerUi.serve, 
+    (req, res) => {
+        let html = swaggerUi.generateHTML(swaggerDocET, {
+            ...swaggerUiOpts,
+            customSiteTitle: "API Dokumentatsioon - Eesti"
+        });
+        res.send(html);
+    }
+);
+
+// Redirect /docs to /docs/en by default
+app.get('/docs', (req, res) => {
+    res.redirect('/docs/en');
+});
 
 // Middleware to parse JSON
 app.use(express.json());
@@ -21,9 +95,6 @@ app.use((req, res, next) => {
         next();
     }
 });
-
-// Serve Swagger UI
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // JWT Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -259,6 +330,72 @@ app.delete('/boards/:boardId', authenticateToken, (req, res) => {
 });
 
 // List routes
+app.put('/lists/:listId', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const { title, position } = req.body;
+
+    const listIndex = lists.findIndex(l => l.id === listId);
+    if (listIndex === -1) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    const list = lists[listIndex];
+
+    // Check if user has permission to update the list
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to update this list.' });
+    }
+
+    // Update only provided fields
+    if (title !== undefined) {
+        list.title = title;
+    }
+    if (position !== undefined && Number.isInteger(position) && position >= 0) {
+        list.position = position;
+    }
+
+    list.updatedAt = new Date().toISOString();
+
+    res.status(200).json(list);
+});
+
+app.delete('/lists/:listId', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    
+    const listIndex = lists.findIndex(l => l.id === listId);
+    if (listIndex === -1) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    const list = lists[listIndex];
+
+    // Check if user has permission to delete the list
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to delete this list.' });
+    }
+
+    lists.splice(listIndex, 1);
+    res.status(204).send();
+});
+
+app.get('/boards/:boardId/lists', authenticateToken, (req, res) => {
+    const { boardId } = req.params;
+    const board = boards.find(b => b.id === parseInt(boardId));
+    
+    if (!board) {
+        return res.status(404).json({ error: 'Board not found.' });
+    }
+
+    if (!board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view lists in this board.' });
+    }
+
+    const boardLists = lists.filter(list => list.boardId === parseInt(boardId));
+    res.status(200).json(boardLists);
+});
+
 app.post('/boards/:boardId/lists', authenticateToken, (req, res) => {
     const { boardId } = req.params;
     const { title } = req.body;
@@ -292,75 +429,6 @@ app.post('/boards/:boardId/lists', authenticateToken, (req, res) => {
     res.setHeader('Location', location);
     
     res.status(201).json(newList);
-});
-
-app.get('/boards/:boardId/lists', authenticateToken, (req, res) => {
-    const { boardId } = req.params;
-    const board = boards.find(b => b.id === parseInt(boardId));
-    
-    if (!board) {
-        return res.status(404).json({ error: 'Board not found.' });
-    }
-
-    if (!board.members.some(member => member.userId === req.user.id)) {
-        return res.status(403).json({ error: 'Not authorized to view lists in this board.' });
-    }
-
-    const boardLists = lists.filter(list => list.boardId === parseInt(boardId));
-    res.status(200).json(boardLists);
-});
-
-
-// Add PUT endpoint for updating a list
-app.put('/lists/:listId', authenticateToken, (req, res) => {
-    const listId = parseInt(req.params.listId);
-    const { title, position } = req.body;
-
-    const listIndex = lists.findIndex(l => l.id === listId);
-    if (listIndex === -1) {
-        return res.status(404).json({ error: 'List not found.' });
-    }
-
-    const list = lists[listIndex];
-
-    // Check if user has permission to update the list
-    const board = boards.find(b => b.id === list.boardId);
-    if (!board || !board.members.some(member => member.userId === req.user.id)) {
-        return res.status(403).json({ error: 'Not authorized to update this list.' });
-    }
-
-    // Update only provided fields
-    if (title !== undefined) {
-        list.title = title;
-    }
-    if (position !== undefined && Number.isInteger(position) && position >= 0) {
-        list.position = position;
-    }
-
-    list.updatedAt = new Date().toISOString();
-
-    res.status(200).json(list);
-});
-
-// Add DELETE endpoint for lists
-app.delete('/lists/:listId', authenticateToken, (req, res) => {
-    const listId = parseInt(req.params.listId);
-    
-    const listIndex = lists.findIndex(l => l.id === listId);
-    if (listIndex === -1) {
-        return res.status(404).json({ error: 'List not found.' });
-    }
-
-    const list = lists[listIndex];
-
-    // Check if user has permission to delete the list
-    const board = boards.find(b => b.id === list.boardId);
-    if (!board || !board.members.some(member => member.userId === req.user.id)) {
-        return res.status(403).json({ error: 'Not authorized to delete this list.' });
-    }
-
-    lists.splice(listIndex, 1);
-    res.status(204).send();
 });
 
 // Card routes

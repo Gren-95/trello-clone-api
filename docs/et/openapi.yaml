@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
-  title: Trello Clone API
-  description: Backend for a simple Trello clone application
+  title: Trello klooni API
+  description: Tagaplaan lihtsa Trello klooni rakenduse jaoks
   version: 1.0.0
 
 servers:
@@ -9,18 +9,18 @@ servers:
     description: Server
 
 tags:
-  - name: Authentication
-    description: User authentication endpoints
-  - name: Users
-    description: User management endpoints
-  - name: Boards
-    description: Board management endpoints
-  - name: Lists
-    description: List management endpoints
-  - name: Cards
-    description: Card management endpoints
-  - name: Comments
-    description: Comment management endpoints
+  - name: Autentimine
+    description: Kasutaja autentimise lõpp-punktid
+  - name: Kasutajad
+    description: Kasutajate haldamise lõpp-punktid
+  - name: Tahvlid
+    description: Tahvlite haldamise lõpp-punktid
+  - name: Loendid
+    description: Loendite haldamise lõpp-punktid
+  - name: Kaardid
+    description: Kaartide haldamise lõpp-punktid
+  - name: Kommentaarid
+    description: Kommentaaride haldamise lõpp-punktid
 
 components:
   securitySchemes:
@@ -28,7 +28,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT token obtained from login endpoint
+      description: JWT token, mis saadakse sisselogimise lõpp-punktist
   schemas:
     Board:
       type: object
@@ -49,7 +49,7 @@ components:
           default: false
         background:
           type: string
-          description: URL or color code for board background
+          description: URL või värvikood tahvli taustaks
         isTemplate:
           type: boolean
           default: false
@@ -65,7 +65,7 @@ components:
                 type: string
               role:
                 type: string
-                enum: [owner, admin, member]
+                enum: [omanik, administraator, liige]
     List:
       type: object
       required:
@@ -174,7 +174,7 @@ components:
       properties:
         token:
           type: string
-          description: JWT token for authentication
+          description: JWT token autentimiseks
     User:
       type: object
       required:
@@ -233,9 +233,9 @@ paths:
   /sessions:
     post:
       tags:
-        - Authentication
-      security: []  # No authentication required for login
-      summary: Create a session to get JWT token
+        - Autentimine
+      security: []  # Sisselogimiseks ei ole autentimist nõutud
+      summary: Loo seanss JWT tokeni saamiseks
       requestBody:
         required: true
         content:
@@ -243,36 +243,36 @@ paths:
             schema:
               $ref: '#/components/schemas/LoginRequest'
             example:
-              username: "newUser"
-              password: "securePassword"
+              username: "uusKasutaja"
+              password: "turvalineParool"
       responses:
         200:
-          description: Successful session creation
+          description: Seansi loomine õnnestus
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
         401:
-          description: Invalid credentials
+          description: Vigased mandaadid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     delete:
       tags:
-        - Authentication
+        - Autentimine
       security:
         - bearerAuth: []
-      summary: End the current session and revoke the token
+      summary: Lõpeta praegune seanss ja tühista token
       responses:
         200:
-          description: Successfully logged out
+          description: Edukas väljalogimine
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LogoutResponse'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
@@ -281,13 +281,13 @@ paths:
   /users:
     get:
       tags:
-        - Users
+        - Kasutajad
       security:
         - bearerAuth: []
       summary: Retrieve all users
       responses:
         200:
-          description: A list of users
+          description: Kasutajate loend
           content:
             application/json:
               schema:
@@ -295,16 +295,16 @@ paths:
                 items:
                   $ref: '#/components/schemas/User'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
       tags:
-        - Users
-      security: []  # No authentication required for creating a user
-      summary: Create a new user
+        - Kasutajad
+      security: []  # Uue kasutaja loomiseks ei ole autentimist nõutud
+      summary: Loo uus kasutaja
       requestBody:
         required: true
         content:
@@ -312,43 +312,43 @@ paths:
             schema:
               $ref: '#/components/schemas/RegisterRequest'
             example:
-              username: "newUser"
-              password: "securePassword"
+              username: "uusKasutaja"
+              password: "turvalineParool"
       responses:
         201:
-          description: User created successfully
+          description: Kasutaja loodud edukalt
           headers:
             Location:
               schema:
                 type: string
-              description: URL of the created user
+              description: Loodud kasutaja URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
         400:
-          description: Invalid username or password format
+          description: Vigane kasutajanimi või parooli formaat
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         409:
-          description: Username already exists
+          description: Kasutajanimi on juba olemas
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     delete:
       tags:
-        - Users
+        - Kasutajad
       security:
         - bearerAuth: []
-      summary: Delete current user's account
+      summary: Kustuta praeguse kasutaja konto
       responses:
         204:
-          description: User deleted successfully
+          description: Kasutaja edukalt kustutatud
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
@@ -357,13 +357,13 @@ paths:
   /boards:
     get:
       tags:
-        - Boards
+        - Tahvlid
       security:
-        - bearerAuth: []  # Require authentication for GET
-      summary: Get all boards
+        - bearerAuth: []  # Nõuab autentimist GET jaoks
+      summary: Saada kõik tahvlid
       responses:
         200:
-          description: A list of boards
+          description: Tahvlite loend
           content:
             application/json:
               schema:
@@ -371,17 +371,17 @@ paths:
                 items:
                   $ref: '#/components/schemas/Board'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
       tags:
-        - Boards
+        - Tahvlid
       security:
         - bearerAuth: []
-      summary: Create a new board
+      summary: Loo uus tahvel
       requestBody:
         required: true
         content:
@@ -396,27 +396,27 @@ paths:
                   minLength: 1
                   maxLength: 100
             example:
-              name: "New Board"
+              name: "Uus Tahvel"
       responses:
         201:
-          description: Board created
+          description: Tahvel loodud
           headers:
             Location:
               schema:
                 type: string
-              description: URL of the created board
+              description: Loodud tahvli URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Board'
         400:
-          description: Invalid request body
+          description: Vigane päringu keha
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
@@ -425,10 +425,10 @@ paths:
   /boards/{boardId}:
     get:
       tags:
-        - Boards
+        - Tahvlid
       security:
         - bearerAuth: []
-      summary: Get a specific board
+      summary: Saada konkreetne tahvel
       parameters:
         - in: path
           name: boardId
@@ -437,37 +437,37 @@ paths:
             type: string
       responses:
         200:
-          description: Board retrieved successfully
+          description: Tahvel edukalt saadud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Board'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         403:
-          description: Forbidden - Not authorized to view this board
+          description: Keelatud - Ei ole volitatud seda tahvlit vaatama
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Board not found
+          description: Tahvlit ei leitud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
               example:
-                error: "Board not found."
+                error: "Tahvlit ei leitud."
     put:
       tags:
-        - Boards
+        - Tahvlid
       security:
         - bearerAuth: []
-      summary: Update a board
+      summary: Uuenda tahvlit
       parameters:
         - in: path
           name: boardId
@@ -494,48 +494,48 @@ paths:
                 isArchived:
                   type: boolean
             example:
-              name: "Updated Board Name"
+              name: "Uuendatud Tahvli Nimi"
               background: "#FFFFFF"
               isTemplate: false
               isFavorite: false
               isArchived: false
       responses:
         200:
-          description: Board updated successfully
+          description: Tahvel edukalt uuendatud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Board'
         400:
-          description: Invalid request body
+          description: Vigane päringu keha
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         403:
-          description: Forbidden - Not authorized to update this board
+          description: Keelatud - Ei ole volitatud seda tahvlit uuendama
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Board not found
+          description: Tahvlit ei leitud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     delete:
       tags:
-        - Boards
+        - Tahvlid
       security:
         - bearerAuth: []
-      summary: Delete a board
+      summary: Kustuta tahvel
       parameters:
         - in: path
           name: boardId
@@ -544,21 +544,21 @@ paths:
             type: string
       responses:
         204:
-          description: Board deleted successfully
+          description: Tahvel edukalt kustutatud
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         403:
-          description: Forbidden - Not authorized to delete this board
+          description: Keelatud - Ei ole volitatud seda tahvlit kustutama
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Board not found
+          description: Tahvlit ei leitud
           content:
             application/json:
               schema:
@@ -567,10 +567,10 @@ paths:
   /boards/{boardId}/lists:
     get:
       tags:
-        - Lists
+        - Loendid
       security:
-        - bearerAuth: []  # Require authentication for GET
-      summary: Get all lists for a board
+        - bearerAuth: []  # Nõuab autentimist GET jaoks
+      summary: Saada kõik loendid tahvli jaoks
       parameters:
         - in: path
           name: boardId
@@ -579,7 +579,7 @@ paths:
             type: string
       responses:
         200:
-          description: Lists retrieved successfully
+          description: Loendid edukalt saadud
           content:
             application/json:
               schema:
@@ -587,23 +587,23 @@ paths:
                 items:
                   $ref: '#/components/schemas/List'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         403:
-          description: Forbidden - Not authorized to view this board's lists
+          description: Keelatud - Ei ole volitatud seda tahvli loendeid vaatama
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
       tags:
-        - Lists
+        - Loendid
       security:
         - bearerAuth: []
-      summary: Create a new list
+      summary: Loo uus loend
       parameters:
         - in: path
           name: boardId
@@ -625,29 +625,30 @@ paths:
                   maxLength: 100
       responses:
         201:
-          description: List created successfully
+          description: Loend edukalt loodud
           headers:
             Location:
               schema:
                 type: string
-              description: URL of the created list
+              description: Loodud loendi URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/List'
         403:
-          description: Forbidden - Not authorized to create lists in this board
+          description: Keelatud - Ei ole volitatud loendeid looma sellel tahvlil
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /lists/{listId}:
     put:
       tags:
-        - Lists
+        - Loendid
       security:
         - bearerAuth: []
-      summary: Update a list
+      summary: Uuenda loendit
       parameters:
         - in: path
           name: listId
@@ -670,29 +671,29 @@ paths:
                   minimum: 0
       responses:
         200:
-          description: List updated successfully
+          description: Loend edukalt uuendatud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/List'
         403:
-          description: Forbidden - Not authorized to update this list
+          description: Keelatud - Ei ole volitatud seda loendit uuendama
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: List not found
+          description: Loendit ei leitud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     delete:
       tags:
-        - Lists
+        - Loendid
       security:
         - bearerAuth: []
-      summary: Delete a list
+      summary: Kustuta loend
       parameters:
         - in: path
           name: listId
@@ -701,15 +702,15 @@ paths:
             type: string
       responses:
         204:
-          description: List deleted successfully
+          description: Loend edukalt kustutatud
         403:
-          description: Forbidden - Not authorized to delete this list
+          description: Keelatud - Ei ole volitatud seda loendit kustutama
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: List not found
+          description: Loendit ei leitud
           content:
             application/json:
               schema:
@@ -718,10 +719,10 @@ paths:
   /lists/{listId}/cards:
     get:
       tags:
-        - Cards
+        - Kaardid
       security:
-        - bearerAuth: []  # Require authentication for GET
-      summary: Get all cards in a list
+        - bearerAuth: []  # Nõuab autentimist GET jaoks
+      summary: Saada kõik kaardid loendis
       parameters:
         - in: path
           name: listId
@@ -730,7 +731,7 @@ paths:
             type: string
       responses:
         200:
-          description: Cards retrieved successfully
+          description: Kaardid edukalt saadud
           content:
             application/json:
               schema:
@@ -738,23 +739,23 @@ paths:
                 items:
                   $ref: '#/components/schemas/Card'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         403:
-          description: Forbidden - Not authorized to view cards in this list
+          description: Keelatud - Ei ole volitatud kaarte vaatama selles loendis
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
       tags:
-        - Cards
+        - Kaardid
       security:
         - bearerAuth: []
-      summary: Create a new card
+      summary: Loo uus kaart
       parameters:
         - in: path
           name: listId
@@ -785,18 +786,18 @@ paths:
                     type: string
       responses:
         201:
-          description: Card created successfully
+          description: Kaart edukalt loodud
           headers:
             Location:
               schema:
                 type: string
-              description: URL of the created card
+              description: Loodud kaardi URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Card'
         403:
-          description: Forbidden - Not authorized to create cards in this list
+          description: Keelatud - Ei ole volitatud kaarte looma selles loendis
           content:
             application/json:
               schema:
@@ -804,10 +805,10 @@ paths:
 
     put:
       tags:
-        - Cards
+        - Kaardid
       security:
         - bearerAuth: []
-      summary: Update a card
+      summary: Uuenda kaarti
       parameters:
         - in: path
           name: cardId
@@ -836,40 +837,40 @@ paths:
                     type: string
                 listId:
                   type: string
-                  description: The ID of the list to move the card to
+                  description: Loendi ID, kuhu kaart liigutada
                 position:
                   type: integer
                   minimum: 0
             example:
-              title: "Updated Card Title"
-              description: "Updated description"
-              listId: "newListId"
+              title: "Uuendatud Kaardi Pealkiri"
+              description: "Uuendatud kirjeldus"
+              listId: "uusLoendiId"
               position: 1
       responses:
         200:
-          description: Card updated successfully
+          description: Kaart edukalt uuendatud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Card'
         403:
-          description: Forbidden - Not authorized to update this card
+          description: Keelatud - Ei ole volitatud seda kaarti uuendama
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Card or list not found
+          description: Kaarti või loendit ei leitud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     delete:
       tags:
-        - Cards
+        - Kaardid
       security:
         - bearerAuth: []
-      summary: Delete a card
+      summary: Kustuta kaart
       parameters:
         - in: path
           name: cardId
@@ -878,15 +879,15 @@ paths:
             type: string
       responses:
         204:
-          description: Card deleted successfully
+          description: Kaart edukalt kustutatud
         403:
-          description: Forbidden - Not authorized to delete this card
+          description: Keelatud - Ei ole volitatud seda kaarti kustutama
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Card not found
+          description: Kaarti ei leitud
           content:
             application/json:
               schema:
@@ -895,10 +896,10 @@ paths:
   /cards/{cardId}/checklist:
     post:
       tags:
-        - Cards
+        - Kaardid
       security:
         - bearerAuth: []
-      summary: Add checklist to card
+      summary: Lisa kontrollnimekiri kaardile
       parameters:
         - in: path
           name: cardId
@@ -917,15 +918,15 @@ paths:
                 title:
                   type: string
             example:
-              title: "New Checklist"
+              title: "Uus Kontrollnimekiri"
       responses:
         201:
-          description: Checklist added successfully
+          description: Kontrollnimekiri edukalt lisatud
           headers:
             Location:
               schema:
                 type: string
-              description: URL of the created checklist
+              description: Loodud kontrollnimekirja URL
           content:
             application/json:
               schema:
@@ -933,9 +934,9 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Checklist added successfully"
+                    example: "Kontrollnimekiri edukalt lisatud"
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
@@ -944,10 +945,10 @@ paths:
   /cards/{cardId}/comments:
     post:
       tags:
-        - Cards
+        - Kaardid
       security:
         - bearerAuth: []
-      summary: Add comment to card
+      summary: Lisa kommentaar kaardile
       parameters:
         - in: path
           name: cardId
@@ -967,30 +968,30 @@ paths:
                   type: string
       responses:
         201:
-          description: Comment added successfully
+          description: Kommentaar edukalt lisatud
           headers:
             Location:
               schema:
                 type: string
-              description: URL of the created comment
+              description: Loodud kommentaari URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Comment'
         400:
-          description: Invalid comment text
+          description: Vigane kommentaari tekst
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Card not found
+          description: Kaarti ei leitud
           content:
             application/json:
               schema:
@@ -999,20 +1000,20 @@ paths:
   /comments:
     get:
       tags:
-        - Comments
+        - Kommentaarid
       security:
         - bearerAuth: []
-      summary: Retrieve all comments
+      summary: Saada kõik kommentaarid
       parameters:
         - in: query
           name: authorId
           required: false
           schema:
             type: string
-          description: Filter comments by author ID
+          description: Filtreeri kommentaarid autori ID järgi
       responses:
         200:
-          description: A list of comments
+          description: Kommentaaride loend
           content:
             application/json:
               schema:
@@ -1020,17 +1021,17 @@ paths:
                 items:
                   $ref: '#/components/schemas/Comment'
         401:
-          description: Unauthorized
+          description: Autoriseerimata
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
       tags:
-        - Comments
+        - Kommentaarid
       security:
         - bearerAuth: []
-      summary: Add a new comment
+      summary: Lisa uus kommentaar
       requestBody:
         required: true
         content:
@@ -1039,18 +1040,18 @@ paths:
               $ref: '#/components/schemas/CommentRequest'
       responses:
         201:
-          description: Comment created successfully
+          description: Kommentaar edukalt loodud
           headers:
             Location:
               schema:
                 type: string
-              description: URL of the created comment
+              description: Loodud kommentaari URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Comment'
         400:
-          description: Invalid comment format
+          description: Vigane kommentaari formaat
           content:
             application/json:
               schema:
@@ -1059,10 +1060,10 @@ paths:
   /comments/{commentId}:
     patch:
       tags:
-        - Comments
+        - Kommentaarid
       security:
         - bearerAuth: []
-      summary: Update a comment
+      summary: Uuenda kommentaari
       parameters:
         - in: path
           name: commentId
@@ -1077,26 +1078,26 @@ paths:
                 text:
                   type: string
             example:
-              text: "Updated comment text"
+              text: "Uuendatud kommentaari tekst"
       responses:
         200:
-          description: Comment updated successfully
+          description: Kommentaar edukalt uuendatud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Comment'
         404:
-          description: Comment not found
+          description: Kommentaari ei leitud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
     delete:
       tags:
-        - Comments
+        - Kommentaarid
       security:
         - bearerAuth: []
-      summary: Remove a comment
+      summary: Eemalda kommentaar
       parameters:
         - in: path
           name: commentId
@@ -1105,9 +1106,9 @@ paths:
             type: string
       responses:
         204:
-          description: Comment deleted successfully
+          description: Kommentaar edukalt kustutatud
         404:
-          description: Comment not found
+          description: Kommentaari ei leitud
           content:
             application/json:
               schema:
@@ -1116,10 +1117,10 @@ paths:
   /users/{userId}:
     put:
       tags:
-        - Users
+        - Kasutajad
       security:
         - bearerAuth: []
-      summary: Change user password
+      summary: Muuda kasutaja parooli
       parameters:
         - in: path
           name: userId
@@ -1144,11 +1145,11 @@ paths:
                   format: password
                   minLength: 6
             example:
-              currentPassword: "securePassword"
-              newPassword: "evenmoresecurePassword"
+              currentPassword: "turvalineParool"
+              newPassword: "veelTurvalisemParool"
       responses:
         200:
-          description: Password changed successfully
+          description: Parool edukalt muudetud
           content:
             application/json:
               schema:
@@ -1156,27 +1157,27 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Password updated successfully"
+                    example: "Parool edukalt uuendatud"
         400:
-          description: Invalid password format
+          description: Vigane parooli formaat
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         401:
-          description: Current password is incorrect
+          description: Praegune parool on vale
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         403:
-          description: Forbidden - Not authorized to update this user
+          description: Keelatud - Ei ole volitatud seda kasutajat uuendama
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: User not found
+          description: Kasutajat ei leitud
           content:
             application/json:
               schema:
