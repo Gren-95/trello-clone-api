@@ -54,11 +54,11 @@ const swaggerUiOpts = {
         docExpansion: 'list',
         urls: [
             {
-                url: '/en/openapi.yaml',
+                url: 'https://docs.bee-srv.me/openapi-en.yaml',
                 name: 'English'
             },
             {
-                url: '/et/openapi.yaml',
+                url: 'https://docs.bee-srv.me/openapi-et.yaml',
                 name: 'Estonian'
             }
         ]
