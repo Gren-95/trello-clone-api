@@ -87,8 +87,12 @@ app.get('/users', authenticateToken, (req, res) => {
     res.status(200).json(safeUsers);
 });
 
-// Replace the PUT /users/password endpoint with this
-app.put('/users', authenticateToken, (req, res) => {
+// Remove or comment out the old PUT /users endpoint
+// app.put('/users', authenticateToken, (req, res) => { ... });
+
+// Add the new PUT endpoint with userId parameter
+app.put('/users/:userId', authenticateToken, (req, res) => {
+    const userId = parseInt(req.params.userId);
     const { currentPassword, newPassword } = req.body;
 
     // Validate request body
@@ -101,8 +105,13 @@ app.put('/users', authenticateToken, (req, res) => {
         return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
     }
 
+    // Check if user is trying to change their own password
+    if (userId !== req.user.id) {
+        return res.status(403).json({ error: 'Not authorized to update this user.' });
+    }
+
     // Find the user
-    const userIndex = users.findIndex(u => u.id === req.user.id);
+    const userIndex = users.findIndex(u => u.id === userId);
     if (userIndex === -1) {
         return res.status(404).json({ error: 'User not found.' });
     }
@@ -141,11 +150,11 @@ app.post('/sessions', (req, res) => {
     res.status(200).json({ token });
 });
 
-app.post('/sessions/logout', authenticateToken, (req, res) => {
+// Replace the POST /sessions/logout endpoint with this
+app.delete('/sessions', authenticateToken, (req, res) => {
     // In a real implementation, you would invalidate the token
     res.status(200).json({ message: 'Successfully logged out.' });
 });
-
 
 // Board routes
 app.post('/boards', authenticateToken, (req, res) => {
@@ -182,8 +191,10 @@ app.get('/boards', authenticateToken, (req, res) => {
     res.status(200).json(userBoards);
 });
 
-app.get('/boards/:id', authenticateToken, (req, res) => {
-    const board = boards.find(b => b.id === parseInt(req.params.id));
+app.get('/boards/:boardId', authenticateToken, (req, res) => {
+    const boardId = parseInt(req.params.boardId);
+    
+    const board = boards.find(b => b.id === boardId);
     
     if (!board) {
         return res.status(404).json({ error: 'Board not found.' });
@@ -196,14 +207,9 @@ app.get('/boards/:id', authenticateToken, (req, res) => {
     res.status(200).json(board);
 });
 
-app.put('/boards', authenticateToken, (req, res) => {
-    // Validate required field
-    if (!req.body.id) {
-        return res.status(400).json({ error: 'Board ID is required.' });
-    }
-
-    // Convert id to number if it's a string
-    const boardId = typeof req.body.id === 'string' ? parseInt(req.body.id) : req.body.id;
+app.put('/boards/:boardId', authenticateToken, (req, res) => {
+    const boardId = parseInt(req.params.boardId);
+    const { name, background, isTemplate, isFavorite, isArchived } = req.body;
 
     // Find the board
     const boardIndex = boards.findIndex(b => b.id === boardId);
@@ -221,15 +227,6 @@ app.put('/boards', authenticateToken, (req, res) => {
         return res.status(403).json({ error: 'Not authorized to update this board.' });
     }
 
-    // Extract only allowed fields to update
-    const {
-        name,
-        background,
-        isTemplate,
-        isFavorite,
-        isArchived
-    } = req.body;
-
     // Update board properties if provided
     if (name && typeof name === 'string') board.name = name;
     if (background && typeof background === 'string') board.background = background;
@@ -243,15 +240,8 @@ app.put('/boards', authenticateToken, (req, res) => {
     res.status(200).json(board);
 });
 
-// Replace the existing DELETE /boards/:id endpoint with this
-app.delete('/boards', authenticateToken, (req, res) => {
-    // Validate required field
-    if (!req.body.id) {
-        return res.status(400).json({ error: 'Board ID is required.' });
-    }
-
-    // Convert id to number if it's a string
-    const boardId = typeof req.body.id === 'string' ? parseInt(req.body.id) : req.body.id;
+app.delete('/boards/:boardId', authenticateToken, (req, res) => {
+    const boardId = parseInt(req.params.boardId);
     
     const boardIndex = boards.findIndex(b => b.id === boardId);
     
@@ -320,17 +310,6 @@ app.get('/boards/:boardId/lists', authenticateToken, (req, res) => {
     res.status(200).json(boardLists);
 });
 
-// Add this endpoint for getting a specific list
-app.get('/lists/:listId', (req, res) => {
-    const listId = parseInt(req.params.listId);
-    const list = lists.find(l => l.id === listId);
-    
-    if (!list) {
-        return res.status(404).json({ error: 'List not found.' });
-    }
-
-    res.status(200).json(list);
-});
 
 // Add PUT endpoint for updating a list
 app.put('/lists/:listId', authenticateToken, (req, res) => {
@@ -692,6 +671,38 @@ app.delete('/comments/:commentId', authenticateToken, (req, res) => {
 
     comments.splice(commentIndex, 1);
     res.status(204).send();
+});
+
+// Update the PUT endpoint for users password change
+app.put('/users/:id/password', authenticateToken, (req, res) => {
+    const userId = parseInt(req.params.id);
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate request body
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required.' });
+    }
+
+    // Validate new password length
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+    }
+
+    // Find the user
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) {
+        return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Verify current password
+    if (users[userIndex].password !== currentPassword) {
+        return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+
+    // Update password
+    users[userIndex].password = newPassword;
+
+    res.status(200).json({ message: 'Password updated successfully' });
 });
 
 // Start the server

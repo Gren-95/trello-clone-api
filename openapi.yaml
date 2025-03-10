@@ -258,9 +258,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-  /sessions/logout:
-    post:
+    delete:
       tags:
         - Authentication
       security:
@@ -336,62 +334,6 @@ paths:
                 $ref: '#/components/schemas/Error'
         409:
           description: Username already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    put:
-      tags:
-        - Users
-      security:
-        - bearerAuth: []
-      summary: Change user password
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - currentPassword
-                - newPassword
-              properties:
-                currentPassword:
-                  type: string
-                  format: password
-                newPassword:
-                  type: string
-                  format: password
-                  minLength: 6
-            example:
-              userId: "1"
-              currentPassword: "securePassword"
-              newPassword: "evenmoresecurePassword"
-      responses:
-        200:
-          description: Password changed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Password updated successfully"
-        400:
-          description: Invalid password format
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        401:
-          description: Current password is incorrect
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        404:
-          description: User not found
           content:
             application/json:
               schema:
@@ -479,121 +421,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    put:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Update a board
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - id
-              properties:
-                id:
-                  type: integer
-                  description: ID of the board to update
-                name:
-                  type: string
-                  minLength: 1
-                  maxLength: 100
-                background:
-                  type: string
-                isTemplate:
-                  type: boolean
-                isFavorite:
-                  type: boolean
-                isArchived:
-                  type: boolean
-            example:
-              id: 1
-              name: "Updated Board Name"
-              background: "#FFFFFF"
-              isTemplate: false
-              isFavorite: false
-              isArchived: false
-      responses:
-        200:
-          description: Board updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Board'
-        400:
-          description: Board ID is required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        403:
-          description: Forbidden - Not authorized to update this board
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        404:
-          description: Board not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    delete:
-      tags:
-        - Boards
-      security:
-        - bearerAuth: []
-      summary: Delete a board
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - id
-              properties:
-                id:
-                  type: integer
-                  description: ID of the board to delete
-            example:
-              id: 1
-      responses:
-        204:
-          description: Board deleted successfully
-        400:
-          description: Board ID is required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        403:
-          description: Forbidden - Not authorized to delete this board
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        404:
-          description: Board not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
   /boards/{boardId}:
     get:
@@ -635,6 +462,107 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: "Board not found."
+    put:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Update a board
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                background:
+                  type: string
+                isTemplate:
+                  type: boolean
+                isFavorite:
+                  type: boolean
+                isArchived:
+                  type: boolean
+            example:
+              name: "Updated Board Name"
+              background: "#FFFFFF"
+              isTemplate: false
+              isFavorite: false
+              isArchived: false
+      responses:
+        200:
+          description: Board updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        400:
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden - Not authorized to update this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Boards
+      security:
+        - bearerAuth: []
+      summary: Delete a board
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Board deleted successfully
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden - Not authorized to delete this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /boards/{boardId}/lists:
     get:
@@ -714,31 +642,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /lists/{listId}:
-    get:
-      tags:
-        - Lists
-      security: []  # No authentication required for GET
-      summary: Get a specific list
-      parameters:
-        - in: path
-          name: listId
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: List retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/List'
-        404:
-          description: List not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
     put:
       tags:
         - Lists
@@ -899,38 +802,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /cards/{cardId}:
-    get:
-      tags:
-        - Cards
-      security:
-        - bearerAuth: []  # Require authentication for GET
-      summary: Get a specific card
-      parameters:
-        - in: path
-          name: cardId
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: Card retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Card'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        403:
-          description: Forbidden - Not authorized to view this card
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
     put:
       tags:
         - Cards
@@ -1237,6 +1108,75 @@ paths:
           description: Comment deleted successfully
         404:
           description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}:
+    put:
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      summary: Change user password
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 6
+            example:
+              currentPassword: "securePassword"
+              newPassword: "evenmoresecurePassword"
+      responses:
+        200:
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password updated successfully"
+        400:
+          description: Invalid password format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Current password is incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Forbidden - Not authorized to update this user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: User not found
           content:
             application/json:
               schema:
