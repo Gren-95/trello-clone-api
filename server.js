@@ -91,10 +91,12 @@ app.use('/et',
 
 // Also serve the YAML files directly
 app.get('/en/openapi.yaml', (req, res) => {
+    res.header('Content-Type', 'application/yaml');
     res.sendFile(path.join(__dirname, 'docs/en/openapi.yaml'));
 });
 
 app.get('/et/openapi.yaml', (req, res) => {
+    res.header('Content-Type', 'application/yaml');
     res.sendFile(path.join(__dirname, 'docs/et/openapi.yaml'));
 });
 
@@ -104,6 +106,7 @@ app.use((req, res, next) => {
         res.header('Access-Control-Allow-Origin', 'https://docs.bee-srv.me');
         res.header('Access-Control-Allow-Methods', 'GET');
         res.header('Access-Control-Allow-Headers', 'Content-Type');
+        res.header('Content-Type', 'application/yaml');
     }
     next();
 });
