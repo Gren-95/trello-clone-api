@@ -54,11 +54,11 @@ const swaggerUiOpts = {
         docExpansion: 'list',
         urls: [
             {
-                url: 'https://docs.bee-srv.me/en/openapi.yaml',
+                url: '/en/openapi.yaml',
                 name: 'English'
             },
             {
-                url: 'https://docs.bee-srv.me/et/openapi.yaml',
+                url: '/et/openapi.yaml',
                 name: 'Estonian'
             }
         ]
@@ -88,28 +88,6 @@ app.use('/et',
         res.send(html);
     }
 );
-
-// Also serve the YAML files directly
-app.get('/en/openapi.yaml', (req, res) => {
-    res.header('Content-Type', 'application/yaml');
-    res.sendFile(path.join(__dirname, 'docs/en/openapi.yaml'));
-});
-
-app.get('/et/openapi.yaml', (req, res) => {
-    res.header('Content-Type', 'application/yaml');
-    res.sendFile(path.join(__dirname, 'docs/et/openapi.yaml'));
-});
-
-// Add CORS middleware for YAML files
-app.use((req, res, next) => {
-    if (req.path.endsWith('openapi.yaml')) {
-        res.header('Access-Control-Allow-Origin', 'https://docs.bee-srv.me');
-        res.header('Access-Control-Allow-Methods', 'GET');
-        res.header('Access-Control-Allow-Headers', 'Content-Type');
-        res.header('Content-Type', 'application/yaml');
-    }
-    next();
-});
 
 // Middleware to parse JSON
 app.use(express.json());
@@ -184,9 +162,6 @@ app.get('/users', authenticateToken, (req, res) => {
     const safeUsers = users.map(({ password, ...user }) => user);
     res.status(200).json(safeUsers);
 });
-
-// Remove or comment out the old PUT /users endpoint
-// app.put('/users', authenticateToken, (req, res) => { ... });
 
 // Add the new PUT endpoint with userId parameter
 app.put('/users/:userId', authenticateToken, (req, res) => {
