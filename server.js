@@ -47,21 +47,20 @@ try {
     process.exit(1);
 }
 
-// Setup Swagger UI instances
-const swaggerUiOpts = {
+// Setup Swagger UI instances with language-specific configurations
+const swaggerUiOptsEN = {
     explorer: true,
     swaggerOptions: {
-        docExpansion: 'list',
-        urls: [
-            {
-                url: 'https://docs.bee-srv.me/openapi-en.yaml',
-                name: 'English'
-            },
-            {
-                url: 'https://docs.bee-srv.me/openapi-et.yaml',
-                name: 'Estonian'
-            }
-        ]
+        url: 'https://docs.bee-srv.me/openapi-en.yaml',
+        docExpansion: 'list'
+    }
+};
+
+const swaggerUiOptsET = {
+    explorer: true,
+    swaggerOptions: {
+        url: 'https://docs.bee-srv.me/openapi-et.yaml',
+        docExpansion: 'list'
     }
 };
 
@@ -70,7 +69,7 @@ app.use('/en',
     swaggerUi.serve, 
     (req, res) => {
         let html = swaggerUi.generateHTML(swaggerDocEN, {
-            ...swaggerUiOpts,
+            ...swaggerUiOptsEN,
             customSiteTitle: "API Documentation - English"
         });
         res.send(html);
@@ -82,7 +81,7 @@ app.use('/et',
     swaggerUi.serve, 
     (req, res) => {
         let html = swaggerUi.generateHTML(swaggerDocET, {
-            ...swaggerUiOpts,
+            ...swaggerUiOptsET,
             customSiteTitle: "API Dokumentatsioon - Eesti"
         });
         res.send(html);
