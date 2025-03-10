@@ -22,8 +22,8 @@ try {
         console.log('Using fallback openapi.yaml for English documentation');
         
         // Ensure docs/en directory exists
-        if (!fs.existsSync(path.join(__dirname, 'docs/en'))) {
-            fs.mkdirSync(path.join(__dirname, 'docs/en'), { recursive: true });
+        if (!fs.existsSync(path.join(__dirname, 'en'))) {
+            fs.mkdirSync(path.join(__dirname, 'en'), { recursive: true });
         }
         
         // Copy openapi.yaml to docs/en/
@@ -56,7 +56,7 @@ const swaggerUiOpts = {
 };
 
 // Serve English docs at /docs/en
-app.use('/docs/en', 
+app.use('/en', 
     swaggerUi.serve, 
     (req, res) => {
         let html = swaggerUi.generateHTML(swaggerDocEN, {
@@ -68,7 +68,7 @@ app.use('/docs/en',
 );
 
 // Serve Estonian docs at /docs/et
-app.use('/docs/et', 
+app.use('/et', 
     swaggerUi.serve, 
     (req, res) => {
         let html = swaggerUi.generateHTML(swaggerDocET, {
@@ -80,8 +80,8 @@ app.use('/docs/et',
 );
 
 // Redirect /docs to /docs/en by default
-app.get('/docs', (req, res) => {
-    res.redirect('/docs/en');
+app.get('/', (req, res) => {
+    res.redirect('/en');
 });
 
 // Middleware to parse JSON
@@ -776,5 +776,6 @@ app.put('/users/:id/password', authenticateToken, (req, res) => {
 // Start the server
 app.listen(port, () => {
     console.log(`API is running at http://localhost:${port}`);
-    console.log(`Documentation is running at http://localhost:${port}/docs`);
+    console.log(`Documentation is available in english: http://localhost:${port}/en`);
+    console.log(`Dokumentatsioon on kättesaadav eesti keeles: http://localhost:${port}/et`);
 }); 
