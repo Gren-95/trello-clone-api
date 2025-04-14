@@ -158,6 +158,21 @@ components:
       properties:
         error:
           type: string
+        message:
+          type: string
+          description: Detailed error message
+    InternalServerError:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          enum: [Internal Server Error]
+        message:
+          type: string
+          description: Detailed error message about what went wrong on the server
     LoginRequest:
       type: object
       required:
@@ -248,18 +263,30 @@ paths:
               username: "newUser"
               password: "securePassword"
       responses:
-        200:
-          description: Successful session creation
+        '200':
+          description: Successfully logged in
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
-        401:
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
           description: Invalid credentials
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     delete:
       tags:
         - Authentication

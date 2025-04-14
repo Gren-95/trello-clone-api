@@ -158,6 +158,8 @@ components:
       properties:
         error:
           type: string
+        message:
+          type: string
     LoginRequest:
       type: object
       required:
@@ -248,18 +250,30 @@ paths:
               username: "uusKasutaja"
               password: "turvalineParool"
       responses:
-        200:
-          description: Seansi loomine õnnestus
+        '200':
+          description: Edukalt sisse logitud
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
-        401:
-          description: Vigased mandaadid
+        '400':
+          description: Vigane päring
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '401':
+          description: Vigased kasutajatunnused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     delete:
       tags:
         - Autentimine

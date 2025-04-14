@@ -4,9 +4,16 @@ const YAML = require('yamljs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
+require('dotenv').config();
 
 const app = express();
 const port = 3000;
+
+// Check for required environment variables
+if (!process.env.JWT_SECRET) {
+    console.error('FATAL ERROR: JWT_SECRET environment variable is not set');
+    process.exit(1);
+}
 
 // Load OpenAPI specifications with fallback
 let swaggerDocEN, swaggerDocET;
@@ -100,6 +107,9 @@ app.use((req, res, next) => {
     }
 });
 
+// Store blacklisted (logged out) tokens
+const blacklistedTokens = new Set();
+
 // JWT Authentication middleware
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -109,11 +119,17 @@ const authenticateToken = (req, res, next) => {
         return res.status(401).json({ error: 'Authentication token is required.' });
     }
 
-    jwt.verify(token, 'your_jwt_secret', (err, user) => {
+    // Check if token is blacklisted (logged out)
+    if (blacklistedTokens.has(token)) {
+        return res.status(401).json({ error: 'Token has been invalidated. Please log in again.' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
             return res.status(403).json({ error: 'Invalid or expired token.' });
         }
         req.user = user;
+        req.token = token; // Store token for logout
         next();
     });
 };
@@ -218,13 +234,14 @@ app.post('/sessions', (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    const token = jwt.sign({ id: user.id, username: user.username }, 'your_jwt_secret', { expiresIn: '1h' });
+    const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.status(200).json({ token });
 });
 
 // Replace the POST /sessions/logout endpoint with this
 app.delete('/sessions', authenticateToken, (req, res) => {
-    // In a real implementation, you would invalidate the token
+    // Add the token to blacklist
+    blacklistedTokens.add(req.token);
     res.status(200).json({ message: 'Successfully logged out.' });
 });
 
@@ -777,6 +794,15 @@ app.put('/users/:id/password', authenticateToken, (req, res) => {
 // Redirect root to English docs
 app.get('/', (req, res) => {
     res.redirect('/en');
+});
+
+// Global error handler middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'Something went wrong on the server'
+    });
 });
 
 // Start the server
