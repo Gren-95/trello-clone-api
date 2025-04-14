@@ -160,6 +160,19 @@ components:
           type: string
         message:
           type: string
+          description: Üksikasjalik veateade
+    InternalServerError:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          enum: [Internal Server Error]
+        message:
+          type: string
+          description: Üksikasjalik veateade serveri vea kohta
     LoginRequest:
       type: object
       required:
@@ -273,17 +286,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - error
-                  - message
-                properties:
-                  error:
-                    type: string
-                    enum: [Internal Server Error]
-                  message:
-                    type: string
-                    description: Detailed error message about what went wrong on the server
+                $ref: '#/components/schemas/InternalServerError'
     delete:
       tags:
         - Autentimine
@@ -303,6 +306,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /users:
     get:
@@ -310,7 +319,7 @@ paths:
         - Kasutajad
       security:
         - bearerAuth: []
-      summary: Retrieve all users
+      summary: Saada kõik kasutajad
       responses:
         200:
           description: Kasutajate loend
@@ -326,6 +335,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     post:
       tags:
         - Kasutajad
@@ -379,6 +394,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /boards:
     get:
@@ -402,6 +423,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     post:
       tags:
         - Tahvlid
@@ -447,6 +474,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /boards/{boardId}:
     get:
@@ -488,6 +521,12 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: "Tahvlit ei leitud."
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     put:
       tags:
         - Tahvlid
@@ -556,6 +595,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     delete:
       tags:
         - Tahvlid
@@ -589,6 +634,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /boards/{boardId}/lists:
     get:
@@ -624,6 +675,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     post:
       tags:
         - Loendid
@@ -667,6 +724,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /lists/{listId}:
     put:
@@ -714,6 +777,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     delete:
       tags:
         - Loendid
@@ -741,6 +810,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /lists/{listId}/cards:
     get:
@@ -776,6 +851,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     post:
       tags:
         - Kaardid
@@ -828,6 +909,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
     put:
       tags:
@@ -891,6 +978,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     delete:
       tags:
         - Kaardid
@@ -918,6 +1011,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /cards/{cardId}/checklist:
     post:
@@ -967,6 +1066,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /cards/{cardId}/comments:
     post:
@@ -1022,6 +1127,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /comments:
     get:
@@ -1052,6 +1163,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     post:
       tags:
         - Kommentaarid
@@ -1082,6 +1199,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /comments/{commentId}:
     patch:
@@ -1118,6 +1241,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     delete:
       tags:
         - Kommentaarid
@@ -1139,6 +1268,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
 
   /users/{userId}:
     put:
@@ -1208,3 +1343,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
