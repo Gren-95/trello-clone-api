@@ -810,4 +810,24 @@ app.listen(port, () => {
     console.log(`API is running at https://bee-srv.me`);
     console.log(`Documentation is available in English: https://docs.bee-srv.me/en`);
     console.log(`Dokumentatsioon on kättesaadav eesti keeles: https://docs.bee-srv.me/et`);
+});
+
+app.delete('/lists/:listId/cards', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    
+    // Find the list
+    const list = lists.find(l => l.id === listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    // Check if user has permission to delete cards in this list
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to delete cards in this list.' });
+    }
+
+    // Delete all cards in this list
+    cards = cards.filter(card => card.listId !== listId);
+    res.status(204).send();
 }); 
