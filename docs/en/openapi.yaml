@@ -748,6 +748,43 @@ paths:
                 $ref: '#/components/schemas/InternalServerError'
 
   /lists/{listId}:
+    get:
+      tags:
+        - Lists
+      security:
+        - bearerAuth: []
+      summary: Get a specific list
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: List not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     put:
       tags:
         - Lists
@@ -781,6 +818,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/List'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Forbidden - Not authorized to update this list
           content:
@@ -814,6 +857,12 @@ paths:
       responses:
         204:
           description: List deleted successfully
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Forbidden - Not authorized to delete this list
           content:
@@ -939,7 +988,7 @@ paths:
       summary: Update a card
       parameters:
         - in: path
-          name: cardId
+          name: listId
           required: true
           schema:
             type: string
@@ -963,17 +1012,9 @@ paths:
                   type: array
                   items:
                     type: string
-                listId:
-                  type: string
-                  description: The ID of the list to move the card to
                 position:
                   type: integer
                   minimum: 0
-            example:
-              title: "Updated Card Title"
-              description: "Updated description"
-              listId: "newListId"
-              position: 1
       responses:
         200:
           description: Card updated successfully
@@ -982,13 +1023,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Card'
         403:
-          description: Forbidden - Not authorized to update this card
+          description: Forbidden - Not authorized to update cards in this list
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Card or list not found
+          description: List not found
           content:
             application/json:
               schema:
@@ -1007,7 +1048,7 @@ paths:
       summary: Delete a card
       parameters:
         - in: path
-          name: cardId
+          name: listId
           required: true
           schema:
             type: string
@@ -1015,13 +1056,13 @@ paths:
         204:
           description: Card deleted successfully
         403:
-          description: Forbidden - Not authorized to delete this card
+          description: Forbidden - Not authorized to delete cards in this list
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Card not found
+          description: List not found
           content:
             application/json:
               schema:
@@ -1214,6 +1255,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         500:
           description: Internal server error
           content:
@@ -1222,6 +1269,43 @@ paths:
                 $ref: '#/components/schemas/InternalServerError'
 
   /comments/{commentId}:
+    get:
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      summary: Get a specific comment
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Comment retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     patch:
       tags:
         - Comments
@@ -1250,6 +1334,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Comment'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         404:
           description: Comment not found
           content:
@@ -1277,6 +1367,12 @@ paths:
       responses:
         204:
           description: Comment deleted successfully
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         404:
           description: Comment not found
           content:

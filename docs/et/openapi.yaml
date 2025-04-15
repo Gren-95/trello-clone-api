@@ -718,6 +718,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/List'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Keelatud - Ei ole volitatud loendeid looma sellel tahvlil
           content:
@@ -732,6 +738,43 @@ paths:
                 $ref: '#/components/schemas/InternalServerError'
 
   /lists/{listId}:
+    get:
+      tags:
+        - Loendid
+      security:
+        - bearerAuth: []
+      summary: Saada konkreetne loend
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Loend edukalt saadud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Loendit ei leitud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     put:
       tags:
         - Loendid
@@ -765,6 +808,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/List'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Keelatud - Ei ole volitatud seda loendit uuendama
           content:
@@ -798,6 +847,12 @@ paths:
       responses:
         204:
           description: Loend edukalt kustutatud
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Keelatud - Ei ole volitatud seda loendit kustutama
           content:
@@ -903,6 +958,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Card'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Keelatud - Ei ole volitatud kaarte looma selles loendis
           content:
@@ -924,7 +985,7 @@ paths:
       summary: Uuenda kaarti
       parameters:
         - in: path
-          name: cardId
+          name: listId
           required: true
           schema:
             type: string
@@ -948,9 +1009,6 @@ paths:
                   type: array
                   items:
                     type: string
-                listId:
-                  type: string
-                  description: Loendi ID, kuhu kaart liigutada
                 position:
                   type: integer
                   minimum: 0
@@ -992,13 +1050,19 @@ paths:
       summary: Kustuta kaart
       parameters:
         - in: path
-          name: cardId
+          name: listId
           required: true
           schema:
             type: string
       responses:
         204:
           description: Kaart edukalt kustutatud
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Keelatud - Ei ole volitatud seda kaarti kustutama
           content:
@@ -1006,7 +1070,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         404:
-          description: Kaarti ei leitud
+          description: Loendit ei leitud
           content:
             application/json:
               schema:
@@ -1199,6 +1263,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         500:
           description: Sisemine serveri viga
           content:
@@ -1207,6 +1277,43 @@ paths:
                 $ref: '#/components/schemas/InternalServerError'
 
   /comments/{commentId}:
+    get:
+      tags:
+        - Kommentaarid
+      security:
+        - bearerAuth: []
+      summary: Saada konkreetne kommentaar
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Kommentaar edukalt saadud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Kommentaari ei leitud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
     patch:
       tags:
         - Kommentaarid
@@ -1235,6 +1342,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Comment'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         404:
           description: Kommentaari ei leitud
           content:
@@ -1262,6 +1375,12 @@ paths:
       responses:
         204:
           description: Kommentaar edukalt kustutatud
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         404:
           description: Kommentaari ei leitud
           content:
