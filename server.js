@@ -107,14 +107,6 @@ app.use((req, res, next) => {
     }
 });
 
-// Add error handling middleware for 404 errors
-app.use((req, res, next) => {
-    res.status(404).json({
-        error: 'Not Found',
-        message: `Cannot ${req.method} ${req.path}`
-    });
-});
-
 // Store blacklisted (logged out) tokens
 const blacklistedTokens = new Set();
 
