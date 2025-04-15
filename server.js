@@ -59,10 +59,7 @@ const swaggerUiOptsEN = {
     explorer: true,
     swaggerOptions: {
         url: '/openapi-en.yaml',
-        docExpansion: 'list',
-        persistAuthorization: true,
-        displayRequestDuration: true,
-        filter: true
+        docExpansion: 'list'
     }
 };
 
@@ -70,10 +67,7 @@ const swaggerUiOptsET = {
     explorer: true,
     swaggerOptions: {
         url: '/openapi-et.yaml',
-        docExpansion: 'list',
-        persistAuthorization: true,
-        displayRequestDuration: true,
-        filter: true
+        docExpansion: 'list'
     }
 };
 
@@ -91,27 +85,13 @@ app.get('/openapi-et.yaml', (req, res) => {
 // Serve English docs at /en
 app.use('/en', 
     swaggerUi.serve, 
-    (req, res) => {
-        let html = swaggerUi.generateHTML(swaggerDocEN, {
-            ...swaggerUiOptsEN,
-            customSiteTitle: "API Documentation - English"
-        });
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(html);
-    }
+    swaggerUi.setup(swaggerDocEN, swaggerUiOptsEN)
 );
 
 // Serve Estonian docs at /et
 app.use('/et', 
     swaggerUi.serve, 
-    (req, res) => {
-        let html = swaggerUi.generateHTML(swaggerDocET, {
-            ...swaggerUiOptsET,
-            customSiteTitle: "API Dokumentatsioon - Eesti"
-        });
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(html);
-    }
+    swaggerUi.setup(swaggerDocET, swaggerUiOptsET)
 );
 
 // Middleware to parse JSON
