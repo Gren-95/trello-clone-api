@@ -835,15 +835,20 @@ app.delete('/lists/:listId/cards', authenticateToken, (req, res) => {
 app.get('/comments/:commentId', authenticateToken, (req, res) => {
     const commentId = parseInt(req.params.commentId);
     
-    const comment = comments.find(c => c.id === commentId);
-    if (!comment) {
-        return res.status(404).json({ error: 'Comment not found.' });
+    // First check if it's a standalone comment
+    const standaloneComment = comments.find(c => c.id === commentId);
+    if (standaloneComment) {
+        // For standalone comments, only check if the user owns the comment
+        if (standaloneComment.userId !== req.user.id) {
+            return res.status(403).json({ error: 'Not authorized to view this comment.' });
+        }
+        return res.status(200).json(standaloneComment);
     }
 
-    // Check if user has permission to view the comment
+    // If not a standalone comment, check if it's a card comment
     const card = cards.find(c => c.comments.some(com => com.id === commentId));
     if (!card) {
-        return res.status(404).json({ error: 'Card not found.' });
+        return res.status(404).json({ error: 'Comment not found.' });
     }
 
     const list = lists.find(l => l.id === card.listId);
@@ -853,7 +858,9 @@ app.get('/comments/:commentId', authenticateToken, (req, res) => {
         return res.status(403).json({ error: 'Not authorized to view this comment.' });
     }
 
-    res.status(200).json(comment);
+    // Find the comment in the card's comments
+    const cardComment = card.comments.find(com => com.id === commentId);
+    res.status(200).json(cardComment);
 });
 
 app.get('/boards/:boardId/lists/:listId', authenticateToken, (req, res) => {
