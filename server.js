@@ -724,22 +724,45 @@ app.patch('/comments/:commentId', authenticateToken, (req, res) => {
     const { text } = req.body;
     const commentId = parseInt(req.params.commentId);
 
-    const commentIndex = comments.findIndex(c => c.id === commentId);
-    if (commentIndex === -1) {
+    // First check if it's a standalone comment
+    const standaloneCommentIndex = comments.findIndex(c => c.id === commentId);
+    if (standaloneCommentIndex !== -1) {
+        // For standalone comments, only check if the user owns the comment
+        if (comments[standaloneCommentIndex].userId !== req.user.id) {
+            return res.status(403).json({ error: 'Not authorized to update this comment.' });
+        }
+
+        // Update the comment text
+        if (text !== undefined) {
+            comments[standaloneCommentIndex].text = text;
+            comments[standaloneCommentIndex].updatedAt = new Date().toISOString();
+        }
+
+        return res.status(200).json(comments[standaloneCommentIndex]);
+    }
+
+    // If not a standalone comment, check if it's a card comment
+    const card = cards.find(c => c.comments.some(com => com.id === commentId));
+    if (!card) {
         return res.status(404).json({ error: 'Comment not found.' });
     }
 
-    // Check if user owns the comment
-    if (comments[commentIndex].userId !== req.user.id) {
+    // Check if user has permission to update the comment
+    const list = lists.find(l => l.id === card.listId);
+    const board = boards.find(b => b.id === list.boardId);
+    
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
         return res.status(403).json({ error: 'Not authorized to update this comment.' });
     }
 
-    // Update only provided fields
+    // Find and update the comment in the card's comments
+    const cardCommentIndex = card.comments.findIndex(com => com.id === commentId);
     if (text !== undefined) {
-        comments[commentIndex].text = text;
+        card.comments[cardCommentIndex].text = text;
+        card.comments[cardCommentIndex].updatedAt = new Date().toISOString();
     }
 
-    res.status(200).json(comments[commentIndex]);
+    res.status(200).json(card.comments[cardCommentIndex]);
 });
 
 app.delete('/comments/:commentId', authenticateToken, (req, res) => {
