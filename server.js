@@ -79,6 +79,7 @@ app.use('/en',
             ...swaggerUiOptsEN,
             customSiteTitle: "API Documentation - English"
         });
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.send(html);
     }
 );
@@ -91,6 +92,7 @@ app.use('/et',
             ...swaggerUiOptsET,
             customSiteTitle: "API Dokumentatsioon - Eesti"
         });
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.send(html);
     }
 );
