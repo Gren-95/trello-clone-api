@@ -1302,8 +1302,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        403:
+          description: Keelatud - Ei ole volitatud seda kommentaari vaatama
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         404:
-          description: Kommentaari ei leitud
+          description: Kommentaari või kaarti ei leitud
           content:
             application/json:
               schema:
@@ -1458,6 +1464,106 @@ paths:
                 $ref: '#/components/schemas/Error'
         404:
           description: Kasutajat ei leitud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+
+  /boards/{boardId}/lists/{listId}:
+    get:
+      tags:
+        - Loendid
+      security:
+        - bearerAuth: []
+      summary: Saada konkreetne loend tahvlilt
+      parameters:
+        - in: path
+          name: boardId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Loend edukalt saadud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Keelatud - Ei ole volitatud seda tahvlit vaatama
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Tahvlit või loendit ei leitud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Sisemine serveri viga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+
+  /lists/{listId}/cards/{cardId}:
+    get:
+      tags:
+        - Kaardid
+      security:
+        - bearerAuth: []
+      summary: Saada konkreetne kaart loendist
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Kaart edukalt saadud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Keelatud - Ei ole volitatud seda loendit vaatama
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Loendit või kaarti ei leitud
           content:
             application/json:
               schema:

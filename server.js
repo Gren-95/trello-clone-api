@@ -830,4 +830,77 @@ app.delete('/lists/:listId/cards', authenticateToken, (req, res) => {
     // Delete all cards in this list
     cards = cards.filter(card => card.listId !== listId);
     res.status(204).send();
+});
+
+app.get('/comments/:commentId', authenticateToken, (req, res) => {
+    const commentId = parseInt(req.params.commentId);
+    
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) {
+        return res.status(404).json({ error: 'Comment not found.' });
+    }
+
+    // Check if user has permission to view the comment
+    const card = cards.find(c => c.comments.some(com => com.id === commentId));
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+
+    const list = lists.find(l => l.id === card.listId);
+    const board = boards.find(b => b.id === list.boardId);
+    
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view this comment.' });
+    }
+
+    res.status(200).json(comment);
+});
+
+app.get('/boards/:boardId/lists/:listId', authenticateToken, (req, res) => {
+    const boardId = parseInt(req.params.boardId);
+    const listId = parseInt(req.params.listId);
+    
+    // Find the board
+    const board = boards.find(b => b.id === boardId);
+    if (!board) {
+        return res.status(404).json({ error: 'Board not found.' });
+    }
+
+    // Check if user has permission to view the board
+    if (!board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view this board.' });
+    }
+
+    // Find the list
+    const list = lists.find(l => l.id === listId && l.boardId === boardId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found in this board.' });
+    }
+
+    res.status(200).json(list);
+});
+
+app.get('/lists/:listId/cards/:cardId', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const cardId = parseInt(req.params.cardId);
+    
+    // Find the list
+    const list = lists.find(l => l.id === listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    // Check if user has permission to view the list
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view this list.' });
+    }
+
+    // Find the card
+    const card = cards.find(c => c.id === cardId && c.listId === listId);
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found in this list.' });
+    }
+
+    res.status(200).json(card);
 }); 
