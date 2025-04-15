@@ -58,7 +58,7 @@ try {
 const swaggerUiOptsEN = {
     explorer: true,
     swaggerOptions: {
-        url: 'https://docs.bee-srv.me/openapi-en.yaml',
+        url: '/openapi-en.yaml',
         docExpansion: 'list'
     }
 };
@@ -66,10 +66,21 @@ const swaggerUiOptsEN = {
 const swaggerUiOptsET = {
     explorer: true,
     swaggerOptions: {
-        url: 'https://docs.bee-srv.me/openapi-et.yaml',
+        url: '/openapi-et.yaml',
         docExpansion: 'list'
     }
 };
+
+// Serve OpenAPI YAML files
+app.get('/openapi-en.yaml', (req, res) => {
+    res.setHeader('Content-Type', 'text/yaml');
+    res.sendFile(path.join(__dirname, 'docs/en/openapi.yaml'));
+});
+
+app.get('/openapi-et.yaml', (req, res) => {
+    res.setHeader('Content-Type', 'text/yaml');
+    res.sendFile(path.join(__dirname, 'docs/et/openapi.yaml'));
+});
 
 // Serve English docs at /en
 app.use('/en', 
