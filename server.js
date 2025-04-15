@@ -60,7 +60,9 @@ const swaggerUiOptsEN = {
     swaggerOptions: {
         url: '/openapi-en.yaml',
         docExpansion: 'list',
-        persistAuthorization: true
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        filter: true
     }
 };
 
@@ -69,7 +71,9 @@ const swaggerUiOptsET = {
     swaggerOptions: {
         url: '/openapi-et.yaml',
         docExpansion: 'list',
-        persistAuthorization: true
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        filter: true
     }
 };
 
