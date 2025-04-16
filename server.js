@@ -58,7 +58,7 @@ try {
 const swaggerUiOptsEN = {
     explorer: true,
     swaggerOptions: {
-        url: '/openapi-en.yaml',
+        url: '/docs/en/openapi.yaml',
         docExpansion: 'list'
     }
 };
@@ -66,18 +66,18 @@ const swaggerUiOptsEN = {
 const swaggerUiOptsET = {
     explorer: true,
     swaggerOptions: {
-        url: '/openapi-et.yaml',
+        url: '/docs/et/openapi.yaml',
         docExpansion: 'list'
     }
 };
 
 // Serve OpenAPI YAML files
-app.get('/openapi-en.yaml', (req, res) => {
+app.get('/docs/en/openapi.yaml', (req, res) => {
     res.setHeader('Content-Type', 'text/yaml');
     res.sendFile(path.join(__dirname, 'docs/en/openapi.yaml'));
 });
 
-app.get('/openapi-et.yaml', (req, res) => {
+app.get('/docs/et/openapi.yaml', (req, res) => {
     res.setHeader('Content-Type', 'text/yaml');
     res.sendFile(path.join(__dirname, 'docs/et/openapi.yaml'));
 });
@@ -85,13 +85,29 @@ app.get('/openapi-et.yaml', (req, res) => {
 // Serve English docs at /en
 app.use('/en', 
     swaggerUi.serve, 
-    swaggerUi.setup(swaggerDocEN, swaggerUiOptsEN)
+    (req, res, next) => {
+        swaggerUi.setup(swaggerDocEN, {
+            ...swaggerUiOptsEN,
+            swaggerOptions: {
+                ...swaggerUiOptsEN.swaggerOptions,
+                url: '/docs/en/openapi.yaml'
+            }
+        })(req, res, next);
+    }
 );
 
 // Serve Estonian docs at /et
 app.use('/et', 
     swaggerUi.serve, 
-    swaggerUi.setup(swaggerDocET, swaggerUiOptsET)
+    (req, res, next) => {
+        swaggerUi.setup(swaggerDocET, {
+            ...swaggerUiOptsET,
+            swaggerOptions: {
+                ...swaggerUiOptsET.swaggerOptions,
+                url: '/docs/et/openapi.yaml'
+            }
+        })(req, res, next);
+    }
 );
 
 // Middleware to parse JSON
