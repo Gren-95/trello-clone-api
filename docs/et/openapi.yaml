@@ -730,6 +730,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        404:
+          description: Tahvlit ei leitud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         500:
           description: Sisemine serveri viga
           content:
@@ -970,6 +976,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        404:
+          description: Loendit ei leitud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         500:
           description: Sisemine serveri viga
           content:
@@ -1024,6 +1036,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Card'
+        401:
+          description: Autoriseerimata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Keelatud - Ei ole volitatud seda kaarti uuendama
           content:

@@ -734,8 +734,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/List'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Forbidden - Not authorized to create lists in this board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Board not found
           content:
             application/json:
               schema:
@@ -968,8 +980,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Card'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Forbidden - Not authorized to create cards in this list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: List not found
           content:
             application/json:
               schema:
@@ -1022,6 +1046,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Card'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Forbidden - Not authorized to update cards in this list
           content:
@@ -1055,6 +1085,12 @@ paths:
       responses:
         204:
           description: Card deleted successfully
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         403:
           description: Forbidden - Not authorized to delete cards in this list
           content:
