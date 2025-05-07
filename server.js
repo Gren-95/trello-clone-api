@@ -575,7 +575,6 @@ app.put('/cards/:cardId', authenticateToken, (req, res) => {
 
     // If moving to a different list, verify the target list exists and user has permission
     if (listId !== undefined) {
-        // Convert listId to number if it's a string
         const targetListId = typeof listId === 'string' ? parseInt(listId) : listId;
         const targetList = lists.find(l => l.id === targetListId);
         if (!targetList) {
@@ -948,4 +947,22 @@ app.get('/lists/:listId/cards/:cardId', authenticateToken, (req, res) => {
     }
 
     res.status(200).json(card);
+});
+
+app.get('/lists/:listId', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    
+    // Find the list
+    const list = lists.find(l => l.id === listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    // Check if user has permission to view the list
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view this list.' });
+    }
+
+    res.status(200).json(list);
 }); 
