@@ -4,10 +4,19 @@ const YAML = require('yamljs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
 const port = 3066;
+
+// Enable CORS for frontend
+app.use(cors({
+    origin: '*',  // Allow all origins
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
 
 // Check for required environment variables
 if (!process.env.JWT_SECRET) {
@@ -156,6 +165,13 @@ let lists = [];
 let cards = [];
 let comments = [];
 
+// Make data accessible for testing
+app.locals.users = users;
+app.locals.boards = boards;
+app.locals.lists = lists;
+app.locals.cards = cards;
+app.locals.comments = comments;
+
 // Add this helper function at the top
 const createErrorResponse = (message) => ({
     error: message
@@ -249,7 +265,11 @@ app.post('/sessions', (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(
+        { id: user.id, username: user.username },
+        process.env.JWT_SECRET,
+        { expiresIn: '30d' } // Set token expiration to 30 days
+    );
     res.status(200).json({ token });
 });
 
@@ -308,7 +328,20 @@ app.get('/boards/:boardId', authenticateToken, (req, res) => {
         return res.status(403).json({ error: 'Not authorized to view this board.' });
     }
 
-    res.status(200).json(board);
+    // Get lists for this board
+    const boardLists = lists.filter(list => list.boardId === boardId);
+    
+    // Get cards for each list
+    const boardListsWithCards = boardLists.map(list => ({
+        ...list,
+        cards: cards.filter(card => card.listId === list.id)
+    }));
+
+    // Return board with lists and cards
+    res.status(200).json({
+        ...board,
+        lists: boardListsWithCards
+    });
 });
 
 app.put('/boards/:boardId', authenticateToken, (req, res) => {
@@ -451,6 +484,8 @@ app.post('/boards/:boardId/lists', authenticateToken, (req, res) => {
         boardId: parseInt(boardId),
         userId: req.user.id,
         title,
+        position: lists.filter(l => l.boardId === parseInt(boardId)).length,
+        cards: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
@@ -485,14 +520,11 @@ app.get('/lists/:listId/cards', authenticateToken, (req, res) => {
 
 app.post('/lists/:listId/cards', authenticateToken, (req, res) => {
     const listId = parseInt(req.params.listId);
-    const { title, description, dueDate, labels } = req.body;
+    const { title, description, dueDate, labels, position } = req.body;
 
     // Add validation for required fields according to OpenAPI spec
     if (!title) {
         return res.status(400).json({ error: 'Title is required.' });
-    }
-    if (!listId) {
-        return res.status(400).json({ error: 'List ID is required.' });
     }
 
     const list = lists.find(l => l.id === listId);
@@ -506,12 +538,17 @@ app.post('/lists/:listId/cards', authenticateToken, (req, res) => {
         return res.status(403).json({ error: 'Not authorized to create cards in this list.' });
     }
 
+    // Calculate position if not provided
+    const cardPosition = position !== undefined ? position : 
+        cards.filter(c => c.listId === listId).length;
+
     const newCard = {
         id: cards.length + 1,
         listId,
         userId: req.user.id,
         title,
         description: description || '',
+        position: cardPosition,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         dueDate: dueDate || null,
@@ -524,10 +561,104 @@ app.post('/lists/:listId/cards', authenticateToken, (req, res) => {
     cards.push(newCard);
 
     // Set Location header
-    const location = `/cards/${newCard.id}`;
+    const location = `/lists/${listId}/cards/${newCard.id}`;
     res.setHeader('Location', location);
     
     res.status(201).json(newCard);
+});
+
+app.put('/lists/:listId/cards', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const { id, title, description, dueDate, labels, position } = req.body;
+    
+    if (!id) {
+        return res.status(400).json({ error: 'Card ID is required.' });
+    }
+
+    const cardId = parseInt(id);
+    const cardIndex = cards.findIndex(c => c.id === cardId);
+    
+    if (cardIndex === -1) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+
+    const card = cards[cardIndex];
+    
+    // Check if the card belongs to the specified list
+    if (card.listId !== listId) {
+        return res.status(400).json({ error: 'Card does not belong to the specified list.' });
+    }
+
+    // Check if user has permission to update card
+    const list = lists.find(l => l.id === listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to update this card.' });
+    }
+
+    // Update only provided fields
+    if (title !== undefined) {
+        card.title = title;
+    }
+    if (description !== undefined) {
+        card.description = description;
+    }
+    if (dueDate !== undefined) {
+        card.dueDate = dueDate;
+    }
+    if (labels !== undefined) {
+        card.labels = labels;
+    }
+    if (position !== undefined) {
+        card.position = position;
+    }
+
+    card.updatedAt = new Date().toISOString();
+
+    res.status(200).json(card);
+});
+
+app.delete('/lists/:listId/cards', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const { id } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ error: 'Card ID is required.' });
+    }
+
+    const cardId = parseInt(id);
+    const cardIndex = cards.findIndex(c => c.id === cardId);
+    
+    if (cardIndex === -1) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+
+    const card = cards[cardIndex];
+    
+    // Check if the card belongs to the specified list
+    if (card.listId !== listId) {
+        return res.status(400).json({ error: 'Card does not belong to the specified list.' });
+    }
+
+    // Check if user has permission to delete card
+    const list = lists.find(l => l.id === listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to delete this card.' });
+    }
+
+    // Remove card
+    cards.splice(cardIndex, 1);
+    
+    res.status(204).send();
 });
 
 app.get('/cards/:cardId', authenticateToken, (req, res) => {
@@ -628,155 +759,264 @@ app.delete('/cards/:cardId', authenticateToken, (req, res) => {
 
 app.post('/cards/:cardId/checklist', authenticateToken, (req, res) => {
     const cardId = parseInt(req.params.cardId);
-    const { title } = req.body;
+    const { item } = req.body;
 
-    if (!title) {
-        return res.status(400).json({ error: 'Title is required.' });
+    if (!item) {
+        return res.status(400).json({ error: 'Checklist item is required.' });
     }
 
-    const card = cards.find(c => c.id === cardId);
-    if (!card) {
+    const cardIndex = cards.findIndex(c => c.id === cardId);
+    if (cardIndex === -1) {
         return res.status(404).json({ error: 'Card not found.' });
     }
 
+    const card = cards[cardIndex];
+
+    // Check if user has permission to update card
     const list = lists.find(l => l.id === card.listId);
-    const board = boards.find(b => b.id === list.boardId);
-    
-    if (!board || !board.members.some(member => member.userId === req.user.id)) {
-        return res.status(403).json({ error: 'Not authorized to add checklist to this card.' });
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
     }
 
-    const newChecklist = {
-        id: (card.checklist.length + 1).toString(),
-        title,
-        items: []
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to update this card.' });
+    }
+
+    // Create checklist item
+    const checklistItem = {
+        id: (card.checklist.length > 0 ? Math.max(...card.checklist.map(i => i.id)) : 0) + 1,
+        text: item,
+        completed: false,
+        createdAt: new Date().toISOString()
     };
 
-    card.checklist.push(newChecklist);
+    card.checklist.push(checklistItem);
+    card.updatedAt = new Date().toISOString();
 
-    // Set Location header
-    const location = `/cards/${cardId}/checklist/${newChecklist.id}`;
-    res.setHeader('Location', location);
-    
-    res.status(201).json({ message: 'Checklist added successfully' });
+    res.status(201).json(checklistItem);
 });
 
 app.post('/cards/:cardId/comments', authenticateToken, (req, res) => {
     const cardId = parseInt(req.params.cardId);
-    const { text } = req.body;
+    const { content } = req.body;
 
-    if (!text) {
-        return res.status(400).json({ error: 'Comment text is required.' });
+    if (!content) {
+        return res.status(400).json({ error: 'Comment content is required.' });
     }
 
-    const card = cards.find(c => c.id === cardId);
-    if (!card) {
+    const cardIndex = cards.findIndex(c => c.id === cardId);
+    if (cardIndex === -1) {
         return res.status(404).json({ error: 'Card not found.' });
     }
 
+    const card = cards[cardIndex];
+
+    // Check if user has permission to comment on card
     const list = lists.find(l => l.id === card.listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
     const board = boards.find(b => b.id === list.boardId);
-    
     if (!board || !board.members.some(member => member.userId === req.user.id)) {
         return res.status(403).json({ error: 'Not authorized to comment on this card.' });
     }
 
+    // Create comment
     const newComment = {
-        id: (card.comments.length + 1).toString(),
+        id: comments.length + 1,
+        cardId,
         userId: req.user.id,
-        text,
-        createdAt: new Date().toISOString()
+        content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
 
-    card.comments.push(newComment);
-
-    // Set Location header
-    const location = `/cards/${cardId}/comments/${newComment.id}`;
-    res.setHeader('Location', location);
+    comments.push(newComment);
     
+    // Update card's comments array with reference to the comment
+    card.comments.push(newComment.id);
+    card.updatedAt = new Date().toISOString();
+
     res.status(201).json(newComment);
+});
+
+app.get('/lists/:listId/cards/:cardId', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const cardId = parseInt(req.params.cardId);
+    
+    // Check if list exists
+    const list = lists.find(l => l.id === listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+    
+    // Check if card exists and belongs to the list
+    const card = cards.find(c => c.id === cardId && c.listId === listId);
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found in this list.' });
+    }
+    
+    // Check if user has permission to view card
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view this card.' });
+    }
+    
+    // Get all comment objects for this card
+    const cardComments = comments.filter(comment => 
+        card.comments.includes(comment.id)
+    );
+    
+    // Return card with full comment objects
+    const cardWithComments = {
+        ...card,
+        comments: cardComments
+    };
+    
+    res.status(200).json(cardWithComments);
 });
 
 // Comments routes
 app.get('/comments', authenticateToken, (req, res) => {
-    const { authorId } = req.query;
+    // Get all comments that the user is authorized to view
+    const userBoards = boards.filter(board => 
+        board.members.some(member => member.userId === req.user.id)
+    );
     
-    let filteredComments = [...comments];
+    const userBoardIds = userBoards.map(board => board.id);
     
-    if (authorId) {
-        filteredComments = filteredComments.filter(comment => comment.userId === authorId);
-    }
+    // Get all lists from user's boards
+    const userLists = lists.filter(list => userBoardIds.includes(list.boardId));
+    const userListIds = userLists.map(list => list.id);
     
-    res.status(200).json(filteredComments);
+    // Get all cards from user's lists
+    const userCards = cards.filter(card => userListIds.includes(card.listId));
+    const userCardIds = userCards.map(card => card.id);
+    
+    // Filter comments to only include those on cards that the user can access
+    const userComments = comments.filter(comment => userCardIds.includes(comment.cardId));
+    
+    res.status(200).json(userComments);
 });
 
 app.post('/comments', authenticateToken, (req, res) => {
-    const { text } = req.body;
-
-    // Validate required fields
-    if (!text) {
-        return res.status(400).json({ error: 'Text field is required.' });
+    const { cardId, content } = req.body;
+    
+    if (!cardId) {
+        return res.status(400).json({ error: 'Card ID is required.' });
     }
-
+    
+    if (!content) {
+        return res.status(400).json({ error: 'Comment content is required.' });
+    }
+    
+    const parsedCardId = parseInt(cardId);
+    const card = cards.find(c => c.id === parsedCardId);
+    
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+    
+    // Check if user has permission to comment on card
+    const list = lists.find(l => l.id === card.listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+    
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to comment on this card.' });
+    }
+    
+    // Create comment
     const newComment = {
         id: comments.length + 1,
-        text,
+        cardId: parsedCardId,
         userId: req.user.id,
-        createdAt: new Date().toISOString()
+        content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
-
+    
     comments.push(newComment);
-
-    // Set Location header
-    const location = `/comments/${newComment.id}`;
-    res.setHeader('Location', location);
+    
+    // Update card's comments array with reference to the comment
+    card.comments.push(newComment.id);
+    card.updatedAt = new Date().toISOString();
     
     res.status(201).json(newComment);
 });
 
-app.patch('/comments/:commentId', authenticateToken, (req, res) => {
-    const { text } = req.body;
+app.get('/comments/:commentId', authenticateToken, (req, res) => {
     const commentId = parseInt(req.params.commentId);
-
-    // First check if it's a standalone comment
-    const standaloneCommentIndex = comments.findIndex(c => c.id === commentId);
-    if (standaloneCommentIndex !== -1) {
-        // For standalone comments, only check if the user owns the comment
-        if (comments[standaloneCommentIndex].userId !== req.user.id) {
-            return res.status(403).json({ error: 'Not authorized to update this comment.' });
-        }
-
-        // Update the comment text
-        if (text !== undefined) {
-            comments[standaloneCommentIndex].text = text;
-            comments[standaloneCommentIndex].updatedAt = new Date().toISOString();
-        }
-
-        return res.status(200).json(comments[standaloneCommentIndex]);
-    }
-
-    // If not a standalone comment, check if it's a card comment
-    const card = cards.find(c => c.comments.some(com => com.id === commentId));
-    if (!card) {
+    const comment = comments.find(c => c.id === commentId);
+    
+    if (!comment) {
         return res.status(404).json({ error: 'Comment not found.' });
     }
-
-    // Check if user has permission to update the comment
-    const list = lists.find(l => l.id === card.listId);
-    const board = boards.find(b => b.id === list.boardId);
     
+    // Check if user has permission to view comment
+    const card = cards.find(c => c.id === comment.cardId);
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+    
+    const list = lists.find(l => l.id === card.listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+    
+    const board = boards.find(b => b.id === list.boardId);
     if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to view this comment.' });
+    }
+    
+    res.status(200).json(comment);
+});
+
+app.patch('/comments/:commentId', authenticateToken, (req, res) => {
+    const commentId = parseInt(req.params.commentId);
+    const { content } = req.body;
+    
+    if (content === undefined) {
+        return res.status(400).json({ error: 'Content is required.' });
+    }
+    
+    const commentIndex = comments.findIndex(c => c.id === commentId);
+    if (commentIndex === -1) {
+        return res.status(404).json({ error: 'Comment not found.' });
+    }
+    
+    const comment = comments[commentIndex];
+    
+    // Check if user is the comment author
+    if (comment.userId !== req.user.id) {
         return res.status(403).json({ error: 'Not authorized to update this comment.' });
     }
-
-    // Find and update the comment in the card's comments
-    const cardCommentIndex = card.comments.findIndex(com => com.id === commentId);
-    if (text !== undefined) {
-        card.comments[cardCommentIndex].text = text;
-        card.comments[cardCommentIndex].updatedAt = new Date().toISOString();
+    
+    // Check if user has access to the board
+    const card = cards.find(c => c.id === comment.cardId);
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found.' });
     }
-
-    res.status(200).json(card.comments[cardCommentIndex]);
+    
+    const list = lists.find(l => l.id === card.listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+    
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to update comments on this card.' });
+    }
+    
+    // Update comment
+    comment.content = content;
+    comment.updatedAt = new Date().toISOString();
+    
+    res.status(200).json(comment);
 });
 
 app.delete('/comments/:commentId', authenticateToken, (req, res) => {
@@ -786,13 +1026,43 @@ app.delete('/comments/:commentId', authenticateToken, (req, res) => {
     if (commentIndex === -1) {
         return res.status(404).json({ error: 'Comment not found.' });
     }
-
-    // Check if user owns the comment
-    if (comments[commentIndex].userId !== req.user.id) {
+    
+    const comment = comments[commentIndex];
+    
+    // Check if user is the comment author or a board admin
+    const card = cards.find(c => c.id === comment.cardId);
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+    
+    const list = lists.find(l => l.id === card.listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+    
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board) {
+        return res.status(404).json({ error: 'Board not found.' });
+    }
+    
+    const userBoardMember = board.members.find(member => member.userId === req.user.id);
+    
+    // Allow deletion if user is comment author or board admin/owner
+    if (comment.userId !== req.user.id && 
+        (!userBoardMember || (userBoardMember.role !== 'admin' && userBoardMember.role !== 'owner'))) {
         return res.status(403).json({ error: 'Not authorized to delete this comment.' });
     }
-
+    
+    // Remove comment from array
     comments.splice(commentIndex, 1);
+    
+    // Remove comment reference from card
+    const cardIndex = cards.findIndex(c => c.id === card.id);
+    if (cardIndex !== -1) {
+        cards[cardIndex].comments = cards[cardIndex].comments.filter(id => id !== commentId);
+        cards[cardIndex].updatedAt = new Date().toISOString();
+    }
+    
     res.status(204).send();
 });
 
@@ -842,127 +1112,11 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start the server
-app.listen(port, () => {
-    console.log(`API is running at https://bee-srv.me`);
-    console.log(`Documentation is available in English: https://docs.bee-srv.me/en`);
-    console.log(`Dokumentatsioon on kättesaadav eesti keeles: https://docs.bee-srv.me/et`);
-});
+// Only start the server if this file is run directly
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}
 
-app.delete('/lists/:listId/cards', authenticateToken, (req, res) => {
-    const listId = parseInt(req.params.listId);
-    
-    // Find the list
-    const list = lists.find(l => l.id === listId);
-    if (!list) {
-        return res.status(404).json({ error: 'List not found.' });
-    }
-
-    // Check if user has permission to delete cards in this list
-    const board = boards.find(b => b.id === list.boardId);
-    if (!board || !board.members.some(member => member.userId === req.user.id)) {
-        return res.status(403).json({ error: 'Not authorized to delete cards in this list.' });
-    }
-
-    // Delete all cards in this list
-    cards = cards.filter(card => card.listId !== listId);
-    res.status(204).send();
-});
-
-app.get('/comments/:commentId', authenticateToken, (req, res) => {
-    const commentId = parseInt(req.params.commentId);
-    
-    // First check if it's a standalone comment
-    const standaloneComment = comments.find(c => c.id === commentId);
-    if (standaloneComment) {
-        // For standalone comments, only check if the user owns the comment
-        if (standaloneComment.userId !== req.user.id) {
-            return res.status(403).json({ error: 'Not authorized to view this comment.' });
-        }
-        return res.status(200).json(standaloneComment);
-    }
-
-    // If not a standalone comment, check if it's a card comment
-    const card = cards.find(c => c.comments.some(com => com.id === commentId));
-    if (!card) {
-        return res.status(404).json({ error: 'Comment not found.' });
-    }
-
-    const list = lists.find(l => l.id === card.listId);
-    const board = boards.find(b => b.id === list.boardId);
-    
-    if (!board || !board.members.some(member => member.userId === req.user.id)) {
-        return res.status(403).json({ error: 'Not authorized to view this comment.' });
-    }
-
-    // Find the comment in the card's comments
-    const cardComment = card.comments.find(com => com.id === commentId);
-    res.status(200).json(cardComment);
-});
-
-app.get('/boards/:boardId/lists/:listId', authenticateToken, (req, res) => {
-    const boardId = parseInt(req.params.boardId);
-    const listId = parseInt(req.params.listId);
-    
-    // Find the board
-    const board = boards.find(b => b.id === boardId);
-    if (!board) {
-        return res.status(404).json({ error: 'Board not found.' });
-    }
-
-    // Check if user has permission to view the board
-    if (!board.members.some(member => member.userId === req.user.id)) {
-        return res.status(403).json({ error: 'Not authorized to view this board.' });
-    }
-
-    // Find the list
-    const list = lists.find(l => l.id === listId && l.boardId === boardId);
-    if (!list) {
-        return res.status(404).json({ error: 'List not found in this board.' });
-    }
-
-    res.status(200).json(list);
-});
-
-app.get('/lists/:listId/cards/:cardId', authenticateToken, (req, res) => {
-    const listId = parseInt(req.params.listId);
-    const cardId = parseInt(req.params.cardId);
-    
-    // Find the list
-    const list = lists.find(l => l.id === listId);
-    if (!list) {
-        return res.status(404).json({ error: 'List not found.' });
-    }
-
-    // Check if user has permission to view the list
-    const board = boards.find(b => b.id === list.boardId);
-    if (!board || !board.members.some(member => member.userId === req.user.id)) {
-        return res.status(403).json({ error: 'Not authorized to view this list.' });
-    }
-
-    // Find the card
-    const card = cards.find(c => c.id === cardId && c.listId === listId);
-    if (!card) {
-        return res.status(404).json({ error: 'Card not found in this list.' });
-    }
-
-    res.status(200).json(card);
-});
-
-app.get('/lists/:listId', authenticateToken, (req, res) => {
-    const listId = parseInt(req.params.listId);
-    
-    // Find the list
-    const list = lists.find(l => l.id === listId);
-    if (!list) {
-        return res.status(404).json({ error: 'List not found.' });
-    }
-
-    // Check if user has permission to view the list
-    const board = boards.find(b => b.id === list.boardId);
-    if (!board || !board.members.some(member => member.userId === req.user.id)) {
-        return res.status(403).json({ error: 'Not authorized to view this list.' });
-    }
-
-    res.status(200).json(list);
-}); 
+module.exports = app; 
