@@ -32,3 +32,4 @@ If you prefer to run the API locally:
     - Documentation:
       - English: [http://localhost:3000/docs/en](http://localhost:3000/docs/en)
       - Estonian: [http://localhost:3000/docs/et](http://localhost:3000/docs/et)
+a
