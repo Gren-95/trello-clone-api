@@ -172,24 +172,40 @@ export default function Boards() {
       </AppBar>
 
       <Container sx={{ mt: 4, flexGrow: 1 }} className="container-content">
-        {/* Search Bar */}
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="Search boards by title..."
-            value={searchQuery}
-            onChange={handleSearchInputChange}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
+        {/* Search and Create Bar */}
+        <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems: 'center' }}>
+          <Paper sx={{ p: 2, flexGrow: 1 }}>
+            <TextField
+              fullWidth
+              placeholder="Search boards by title..."
+              value={searchQuery}
+              onChange={handleSearchInputChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+              variant="outlined"
+              size="small"
+            />
+          </Paper>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenNewBoardDialog(true)}
+            sx={{ 
+              display: 'none',
+              height: '100%',
+              bgcolor: '#026AA7',
+              '&:hover': { bgcolor: '#01588a' }
             }}
-            variant="outlined"
-            size="small"
-          />
-        </Paper>
+          >
+            Create Board
+          </Button>
+        </Box>
         
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
@@ -202,13 +218,23 @@ export default function Boards() {
             <Typography variant="h6" color="textSecondary">
               {searchQuery ? "No boards match your search" : "You don't have any boards yet"}
             </Typography>
-            {searchQuery && (
+            {searchQuery ? (
               <Button 
                 variant="text" 
                 onClick={() => setSearchQuery('')}
                 sx={{ mt: 1 }}
               >
                 Clear search
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => setOpenNewBoardDialog(true)}
+                sx={{ mt: 2 }}
+              >
+                Create Your First Board
               </Button>
             )}
           </Paper>
@@ -339,9 +365,26 @@ export default function Boards() {
       </Container>
 
       {/* Create Board Dialog */}
-      <Dialog open={openNewBoardDialog} onClose={() => setOpenNewBoardDialog(false)}>
-        <DialogTitle>Create New Board</DialogTitle>
-        <DialogContent>
+      <Dialog 
+        open={openNewBoardDialog} 
+        onClose={() => {
+          if (!creating) {
+            setOpenNewBoardDialog(false);
+            setNewBoardName('');
+          }
+        }}
+        PaperProps={{
+          sx: {
+            width: '100%',
+            maxWidth: '450px',
+            borderRadius: '8px'
+          }
+        }}
+      >
+        <DialogTitle sx={{ bgcolor: '#f0f0f0', pb: 2 }}>
+          Create New Board
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
           <TextField
             autoFocus
             margin="dense"
@@ -350,18 +393,37 @@ export default function Boards() {
             value={newBoardName}
             onChange={(e) => setNewBoardName(e.target.value)}
             disabled={creating}
+            placeholder="Enter board name"
+            variant="outlined"
+            InputProps={{
+              sx: { borderRadius: '4px' }
+            }}
+            helperText="Give your board a clear, descriptive name"
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenNewBoardDialog(false)} disabled={creating}>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={() => {
+              setOpenNewBoardDialog(false);
+              setNewBoardName('');
+            }} 
+            disabled={creating}
+            variant="outlined"
+          >
             Cancel
           </Button>
           <Button 
             onClick={handleCreateBoard} 
             variant="contained" 
             disabled={!newBoardName.trim() || creating}
+            startIcon={creating ? <CircularProgress size={20} /> : <AddIcon />}
+            sx={{ 
+              bgcolor: '#026AA7',
+              '&:hover': { bgcolor: '#01588a' },
+              '&.Mui-disabled': { bgcolor: 'rgba(2, 106, 167, 0.3)' }
+            }}
           >
-            {creating ? <CircularProgress size={24} /> : 'Create'}
+            {creating ? 'Creating...' : 'Create Board'}
           </Button>
         </DialogActions>
       </Dialog>

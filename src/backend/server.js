@@ -391,7 +391,33 @@ app.delete('/boards/:boardId', authenticateToken, (req, res) => {
         return res.status(403).json({ error: 'Not authorized to delete this board.' });
     }
 
+    // Get all lists belonging to this board
+    const boardListIds = lists.filter(list => list.boardId === boardId).map(list => list.id);
+    
+    // Get all cards belonging to these lists
+    const boardCardIds = cards.filter(card => boardListIds.includes(card.listId)).map(card => card.id);
+    
+    // Get all comments belonging to these cards
+    const cardCommentIds = [];
+    boardCardIds.forEach(cardId => {
+        const card = cards.find(c => c.id === cardId);
+        if (card && card.comments) {
+            cardCommentIds.push(...card.comments);
+        }
+    });
+    
+    // Remove related comments
+    comments = comments.filter(comment => !cardCommentIds.includes(comment.id));
+    
+    // Remove related cards
+    cards = cards.filter(card => !boardCardIds.includes(card.id));
+    
+    // Remove related lists
+    lists = lists.filter(list => list.boardId !== boardId);
+    
+    // Remove the board itself
     boards.splice(boardIndex, 1);
+    
     res.status(204).send();
 });
 
@@ -442,7 +468,27 @@ app.delete('/lists/:listId', authenticateToken, (req, res) => {
         return res.status(403).json({ error: 'Not authorized to delete this list.' });
     }
 
+    // Get all cards belonging to this list
+    const listCardIds = cards.filter(card => card.listId === listId).map(card => card.id);
+    
+    // Get all comments belonging to these cards
+    const cardCommentIds = [];
+    listCardIds.forEach(cardId => {
+        const card = cards.find(c => c.id === cardId);
+        if (card && card.comments) {
+            cardCommentIds.push(...card.comments);
+        }
+    });
+    
+    // Remove related comments
+    comments = comments.filter(comment => !cardCommentIds.includes(comment.id));
+    
+    // Remove related cards
+    cards = cards.filter(card => card.listId !== listId);
+    
+    // Remove the list itself
     lists.splice(listIndex, 1);
+    
     res.status(204).send();
 });
 
@@ -795,6 +841,47 @@ app.post('/cards/:cardId/checklist', authenticateToken, (req, res) => {
     card.updatedAt = new Date().toISOString();
 
     res.status(201).json(checklistItem);
+});
+
+// Add endpoint for updating checklist items
+app.patch('/cards/:cardId/checklist/:itemId', authenticateToken, (req, res) => {
+    const cardId = parseInt(req.params.cardId);
+    const itemId = parseInt(req.params.itemId);
+    const { completed } = req.body;
+
+    if (completed === undefined) {
+        return res.status(400).json({ error: 'Completed status is required.' });
+    }
+
+    const cardIndex = cards.findIndex(c => c.id === cardId);
+    if (cardIndex === -1) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+
+    const card = cards[cardIndex];
+
+    // Check if user has permission to update card
+    const list = lists.find(l => l.id === card.listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to update this card.' });
+    }
+
+    // Find the checklist item
+    const itemIndex = card.checklist.findIndex(item => item.id === itemId);
+    if (itemIndex === -1) {
+        return res.status(404).json({ error: 'Checklist item not found.' });
+    }
+
+    // Update the item
+    card.checklist[itemIndex].completed = completed;
+    card.updatedAt = new Date().toISOString();
+
+    res.status(200).json(card);
 });
 
 app.post('/cards/:cardId/comments', authenticateToken, (req, res) => {

@@ -2,73 +2,87 @@ export interface User {
   id: string;
   username: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface Board {
   id: string;
   name: string;
-  isFavorite: boolean;
+  userId: string;
   createdAt: string;
-  updatedAt: string;
+  isArchived: boolean;
+  background?: string;
+  isTemplate: boolean;
+  isFavorite: boolean;
+  members?: {
+    userId: string;
+    role: 'owner' | 'admin' | 'member';
+  }[];
   lists: List[];
 }
 
 export interface List {
   id: string;
-  title: string;
   boardId: string;
-  position: number;
-  createdAt: string;
-  updatedAt: string;
-  cards: Card[];
-}
-
-export interface Card {
-  id: string;
+  userId: string;
   title: string;
-  description: string;
-  listId: string;
-  position: number;
-  dueDate: string | null;
-  labels: Label[];
-  attachments: Attachment[];
-  checklist: ChecklistItem[];
-  comments: Comment[];
   createdAt: string;
   updatedAt: string;
-}
-
-export interface Label {
-  id: string;
-  name: string;
-  color: string;
-}
-
-export interface Attachment {
-  id: string;
-  name: string;
-  url: string;
-  type: string;
-  size: number;
-  uploadedAt: string;
+  position?: number;
+  cards: Card[];
 }
 
 export interface ChecklistItem {
   id: string;
   text: string;
-  isCompleted: boolean;
+  completed: boolean;
+}
+
+export interface Card {
+  id: string;
+  listId: string;
+  userId: string;
+  title: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  dueDate?: string;
+  labels?: string[];
+  position?: number;
+  checklist: ChecklistItem[];
+  comments?: Comment[];
 }
 
 export interface Comment {
   id: string;
-  text: string;
   userId: string;
+  text: string;
+  content?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface AuthResponse {
   token: string;
-  user: User;
+}
+
+export interface RegisterRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface CommentRequest {
+  text: string;
+}
+
+export interface LogoutResponse {
+  message: string;
+}
+
+export interface Error {
+  error: string;
+  message?: string;
 } 

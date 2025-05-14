@@ -22,6 +22,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import { boards, lists, cards } from '../services/api';
 import type { Board as BoardType, List, Card as CardType } from '../types';
+import CardModal from '../components/CardModal/CardModal';
 
 export default function Board() {
   const { boardId } = useParams<{ boardId: string }>();
@@ -39,6 +40,9 @@ export default function Board() {
   const [editedBoardName, setEditedBoardName] = useState('');
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editedListTitle, setEditedListTitle] = useState('');
+  const [cardModalOpen, setCardModalOpen] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
   
   // Refs for drag positions
   const dragListRef = useRef<HTMLDivElement | null>(null);
@@ -86,19 +90,41 @@ export default function Board() {
   const fetchLists = async () => {
     if (!boardId) return;
     try {
+      // Fetch the board data which should include lists with cards
+      const freshBoardData = await boards.getById(boardId);
+      
+      // Process the data to ensure all properties are preserved
+      const processedBoardData = {
+        ...freshBoardData,
+        lists: freshBoardData.lists.map(list => ({
+          ...list,
+          id: String(list.id),
+          cards: (list.cards || []).map(card => ({
+            ...card,
+            id: String(card.id)
+          }))
+        }))
+      };
+      
+      setBoard(processedBoardData);
+      
+      // Also update each list to ensure we have the latest data
       const fetchedLists = await lists.getAllByBoardId(boardId);
       if (board) {
+        // Map the cards from each list, preserving all their properties including description
+        const processedLists = fetchedLists.map(list => ({
+          ...list,
+          id: String(list.id),
+          cards: (list.cards || []).map(card => ({
+            ...card,
+            id: String(card.id)
+          }))
+        }));
+        
         // Update board with fetched lists
         setBoard({
-          ...board,
-          lists: fetchedLists.map(list => ({
-            ...list,
-            id: String(list.id),
-            cards: (list.cards || []).map(card => ({
-              ...card,
-              id: String(card.id)
-            }))
-          }))
+          ...processedBoardData,
+          lists: processedLists
         });
       }
     } catch (err) {
@@ -233,6 +259,23 @@ export default function Board() {
     }
   };
 
+  const openCardModal = (cardId: string, listId: string) => {
+    setSelectedCardId(cardId);
+    setSelectedListId(listId);
+    setCardModalOpen(true);
+  };
+
+  const handleCardUpdated = () => {
+    // Force reload the current page to ensure everything is updated
+    window.location.reload();
+  };
+
+  const handleCloseCardModal = () => {
+    setCardModalOpen(false);
+    setSelectedCardId(null);
+    setSelectedListId(null);
+  };
+
   // Handle starting to drag a list
   const handleListDragStart = (e: React.DragEvent<HTMLDivElement>, list: List, index: number) => {
     dragListRef.current = e.currentTarget;
@@ -252,11 +295,18 @@ export default function Board() {
       }
     }, 0);
     
-    setDraggedItem({ type: 'list', list, index });
+    setDraggedItem({
+      type: 'list',
+      list,
+      index
+    });
   };
   
   // Handle starting to drag a card
   const handleCardDragStart = (e: React.DragEvent<HTMLDivElement>, card: CardType, listId: string, index: number) => {
+    // Stop propagation to prevent list handlers from being triggered
+    e.stopPropagation();
+    
     dragCardRef.current = e.currentTarget;
     e.dataTransfer.effectAllowed = 'move';
     
@@ -278,11 +328,21 @@ export default function Board() {
     setDraggedItem({ type: 'card', card, listId, index });
   };
   
-  // Handle drag over for lists
+  // Handle drag over for lists - should only be used for list dragging
   const handleListDragOver = (e: React.DragEvent<HTMLDivElement>, listId: string) => {
+    // If we're dragging a card, don't do list-related operations
+    const dragData = draggedItem;
+    if (dragData && dragData.type === 'card') {
+      return;
+    }
+    
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDragOverListId(listId);
+    
+    // Only set dragOverListId if we're dragging a list, not a card
+    if (draggedItem && draggedItem.type === 'list') {
+      setDragOverListId(listId);
+    }
   };
   
   // Handle drag end (cleanup)
@@ -340,7 +400,16 @@ export default function Board() {
   
   // Handle dropping a card
   const handleCardDrop = async (e: React.DragEvent<HTMLDivElement>, dropListId: string, dropIndex: number) => {
+    // Stop propagation to prevent list handlers from being triggered
+    e.stopPropagation();
+    
     e.preventDefault();
+    
+    if (!e.dataTransfer.getData('application/json')) {
+      console.error('No drag data found');
+      return;
+    }
+    
     const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
     
     if (!dragData || dragData.type !== 'card' || !board) return;
@@ -350,6 +419,9 @@ export default function Board() {
       handleDragEnd();
       return;
     }
+    
+    console.log('Drag data:', dragData);
+    console.log('Drop target:', { listId: dropListId, position: dropIndex });
     
     try {
       // Find source and destination lists
@@ -371,6 +443,12 @@ export default function Board() {
       // Remove card from source list
       const [movedCard] = sourceCards.splice(dragData.index, 1);
       
+      // Update the card's listId if moving to a different list
+      if (dragData.listId !== dropListId) {
+        // Convert to number for server, but store as string for UI consistency
+        movedCard.listId = dropListId;
+      }
+      
       // Add card to destination list
       if (dragData.listId === dropListId) {
         sourceCards.splice(dropIndex, 0, movedCard);
@@ -378,7 +456,7 @@ export default function Board() {
         destCards.splice(dropIndex, 0, movedCard);
       }
       
-      // Update UI first
+      // Update UI first for responsiveness
       setBoard({
         ...board,
         lists: board.lists.map(list => {
@@ -392,8 +470,34 @@ export default function Board() {
         })
       });
       
-      // Then update backend
-      await cards.move(String(movedCard.id), String(dropListId), dropIndex);
+      // Log all parameters before the API call
+      console.log('Calling API to move card:', { 
+        cardId: String(movedCard.id), 
+        listId: dropListId,
+        position: dropIndex,
+        sameList: dragData.listId === dropListId
+      });
+      
+      let updatedCard;
+      
+      // Make the API call to move the card
+      if (dragData.listId === dropListId) {
+        // If moving within the same list, use updateInList
+        updatedCard = await cards.updateInList(dropListId, String(movedCard.id), {
+          position: dropIndex
+        });
+      } else {
+        // If moving to a different list, use the standard update endpoint
+        updatedCard = await cards.update(String(movedCard.id), {
+          listId: dropListId,
+          position: dropIndex
+        });
+      }
+      
+      console.log('Updated card from server:', updatedCard);
+      
+      // Force a board refresh to ensure consistency with server state
+      fetchBoard();
     } catch (error) {
       console.error('Error moving card:', error);
       fetchBoard(); // Refresh on error
@@ -501,10 +605,18 @@ export default function Board() {
                   onDragStart={(e) => handleListDragStart(e, list, index)}
                   onDragEnd={handleDragEnd}
                   onDragOver={(e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
+                    // Only handle list drag events at this level
+                    if (draggedItem && draggedItem.type === 'list') {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                    }
                   }}
-                  onDrop={(e) => handleListDrop(e, index)}
+                  onDrop={(e) => {
+                    // Only handle list drop events, not card drop events
+                    if (draggedItem && draggedItem.type === 'list') {
+                      handleListDrop(e, index);
+                    }
+                  }}
                   style={{
                     userSelect: 'none',
                     width: '280px',
@@ -580,7 +692,34 @@ export default function Board() {
                       minHeight: '20px',
                       flexGrow: 1
                     }}
-                    onDragOver={(e) => handleListDragOver(e, listId)}
+                    onDragOver={(e) => {
+                      // Only respond to card drag events, not list drag events
+                      if (!draggedItem || draggedItem.type !== 'card') {
+                        return;
+                      }
+                      
+                      e.preventDefault();
+                      e.stopPropagation(); // Stop propagation to prevent list handlers from being triggered
+                      e.dataTransfer.dropEffect = 'move';
+                      
+                      // Only set dragOverListId if we're dragging a card
+                      setDragOverListId(listId);
+                    }}
+                    onDrop={(e) => {
+                      // Only handle card drop events, not list drop events
+                      if (!draggedItem || draggedItem.type !== 'card') {
+                        return;
+                      }
+                      
+                      // Let the child card handlers deal with this if target is a card
+                      if (e.target !== e.currentTarget) {
+                        return;
+                      }
+                      
+                      // Handle dropping a card at the end of this list
+                      e.stopPropagation();
+                      handleCardDrop(e, listId, list.cards.length);
+                    }}
                   >
                     <div
                       style={{
@@ -613,6 +752,10 @@ export default function Board() {
                                 boxShadow: '0 1px 0 rgba(9,30,66,.25)',
                                 cursor: 'grab',
                                 position: 'relative'
+                              }}
+                              onClick={(e) => {
+                                if (e.defaultPrevented) return; // Skip if this was part of a drag
+                                openCardModal(cardId, listId);
                               }}
                             >
                               <div style={{ 
@@ -656,10 +799,24 @@ export default function Board() {
                             width: '100%' 
                           }}
                           onDragOver={(e) => {
+                            // Only respond to card drag events, not list drag events
+                            if (!draggedItem || draggedItem.type !== 'card') {
+                              return;
+                            }
+                            
                             e.preventDefault();
+                            e.stopPropagation(); // Stop propagation to prevent list handlers
                             e.dataTransfer.dropEffect = 'move';
                           }}
-                          onDrop={(e) => handleCardDrop(e, listId, 0)}
+                          onDrop={(e) => {
+                            // Only handle card drop events, not list drop events
+                            if (!draggedItem || draggedItem.type !== 'card') {
+                              return;
+                            }
+                            
+                            e.stopPropagation();
+                            handleCardDrop(e, listId, 0);
+                          }}
                         />
                       )}
                     </div>
@@ -807,6 +964,18 @@ export default function Board() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Card Modal */}
+      {boardId && selectedListId && (
+        <CardModal
+          open={cardModalOpen}
+          onClose={handleCloseCardModal}
+          listId={selectedListId}
+          cardId={selectedCardId}
+          boardId={boardId}
+          onCardUpdated={handleCardUpdated}
+        />
+      )}
     </Box>
   );
 } 
