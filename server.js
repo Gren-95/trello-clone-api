@@ -530,6 +530,44 @@ app.post('/lists/:listId/cards', authenticateToken, (req, res) => {
     res.status(201).json(newCard);
 });
 
+// --- NEW ENDPOINT: PUT /lists/:listId/cards (update all cards in a list) ---
+app.put('/lists/:listId/cards', authenticateToken, (req, res) => {
+    const listId = parseInt(req.params.listId);
+    const { title, description, dueDate, labels, position } = req.body;
+
+    // Find the list
+    const list = lists.find(l => l.id === listId);
+    if (!list) {
+        return res.status(404).json({ error: 'List not found.' });
+    }
+
+    // Check if user has permission to update cards in this list
+    const board = boards.find(b => b.id === list.boardId);
+    if (!board || !board.members.some(member => member.userId === req.user.id)) {
+        return res.status(403).json({ error: 'Not authorized to update cards in this list.' });
+    }
+
+    // Find all cards in this list
+    const listCards = cards.filter(card => card.listId === listId);
+
+    if (listCards.length === 0) {
+        return res.status(404).json({ error: 'No cards found in this list.' });
+    }
+
+    // Update all cards in the list with provided fields
+    const updatedCards = listCards.map(card => {
+        if (title !== undefined) card.title = title;
+        if (description !== undefined) card.description = description;
+        if (dueDate !== undefined) card.dueDate = dueDate;
+        if (labels !== undefined) card.labels = labels;
+        if (position !== undefined && Number.isInteger(position) && position >= 0) card.position = position;
+        card.updatedAt = new Date().toISOString();
+        return card;
+    });
+
+    res.status(200).json(updatedCards);
+});
+
 app.get('/cards/:cardId', authenticateToken, (req, res) => {
     const cardId = parseInt(req.params.cardId);
     const card = cards.find(c => c.id === cardId);
@@ -836,6 +874,7 @@ app.get('/', (req, res) => {
 // Global error handler middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
+    // Always respond with JSON, even for unexpected errors
     res.status(500).json({
         error: 'Internal Server Error',
         message: 'Something went wrong on the server'
