@@ -1,0 +1,19 @@
+{
+  "name": "trello-clone",
+  "version": "1.0.0",
+  "description": "Trello clone with manual and automated tests",
+  "main": "src/backend/app.js",
+  "scripts": {
+    "test": "jest && node scripts/generate-report.js",
+    "test:e2e": "jest tests/automation/e2e && node scripts/generate-report.js",
+    "test:unit": "jest tests/automation/unit && node scripts/generate-report.js",
+    "report": "node scripts/generate-report.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "supertest": "^6.3.0"
+  },
+  "dependencies": {}
+}

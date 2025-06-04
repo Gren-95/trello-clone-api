@@ -2,40 +2,38 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x]
-
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
     
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
+    - name: Use Node.js
+      uses: actions/setup-node@v3
       with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
+        node-version: '18.x'
+        
     - name: Install dependencies
       run: npm ci
-    
-    - name: Run tests
+      
+    - name: Run tests and generate report
       run: npm test
-      env:
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
-    
-    - name: Upload test reports
-      uses: actions/upload-artifact@v4
+      
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v3
       with:
-        name: test-reports
+        name: test-report
         path: |
           reports/
-          tests/manual/testcases/
-        if-no-files-found: error 
+          !reports/coverage/
+        
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: reports/coverage/ 

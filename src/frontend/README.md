@@ -1,15 +1,6 @@
 # Trello Clone Frontend
 
-This is the frontend for a Trello-like application, built with React, TypeScript, Vite, and Material UI.
-
-## Main Libraries Used
-
-- **React** (v19)
-- **TypeScript** (v5)
-- **Vite** (v6)
-- **Material UI** (MUI v7)
-- **react-beautiful-dnd** (drag and drop)
-- **axios** (HTTP requests)
+This is the frontend for a Trello-like application.
 
 ## Getting Started
 
