@@ -17,8 +17,13 @@ app.locals = {
   blacklistedTokens: new Set()
 };
 
-// Secret key for JWT
-const JWT_SECRET = 'your-secret-key'; // In production, use environment variable
+// Setup JWT_SECRET with fallback to default
+const JWT_SECRET = process.env.JWT_SECRET || 'trello-clone-default-secret-key-change-in-production';
+
+// Warn if using default JWT_SECRET
+if (!process.env.JWT_SECRET) {
+    console.warn('WARNING: JWT_SECRET environment variable is not set. Using default value. Please set JWT_SECRET in production for security.');
+}
 
 // Middleware: Authentication
 const authenticate = (req, res, next) => {

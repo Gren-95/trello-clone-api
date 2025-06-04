@@ -18,10 +18,12 @@ app.use(cors({
     credentials: true
 }));
 
-// Check for required environment variables
+// Setup JWT_SECRET with fallback to default
+const JWT_SECRET = process.env.JWT_SECRET || 'trello-clone-default-secret-key-change-in-production';
+
+// Warn if using default JWT_SECRET
 if (!process.env.JWT_SECRET) {
-    console.error('FATAL ERROR: JWT_SECRET environment variable is not set');
-    process.exit(1);
+    console.warn('WARNING: JWT_SECRET environment variable is not set. Using default value. Please set JWT_SECRET in production for security.');
 }
 
 // Load OpenAPI specifications with fallback
@@ -148,7 +150,7 @@ const authenticateToken = (req, res, next) => {
         return res.status(401).json({ error: 'Token has been invalidated. Please log in again.' });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
             return res.status(403).json({ error: 'Invalid or expired token.' });
         }
@@ -267,7 +269,7 @@ app.post('/sessions', (req, res) => {
 
     const token = jwt.sign(
         { id: user.id, username: user.username },
-        process.env.JWT_SECRET,
+        JWT_SECRET,
         { expiresIn: '30d' } // Set token expiration to 30 days
     );
     res.status(200).json({ token });
