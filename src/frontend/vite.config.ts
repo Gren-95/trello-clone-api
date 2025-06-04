@@ -9,5 +9,6 @@ export default defineConfig({
     strictPort: false, // Allow fallback to next available port
     host: true, // Listen on all local IPs
     open: true, // Automatically open the browser
+    allowedHosts: ['bee-srv.me', 'localhost', '127.0.0.1'], // Allow these hosts
   },
 })
