@@ -12,7 +12,11 @@ npm start &
 
 # Start the frontend server
 cd "$SCRIPT_DIR/src/frontend"
+npm install
 npm run dev &
 
 # Trap Ctrl+C to kill node processes
 trap "pkill node" INT
+
+# Wait for background processes
+wait
