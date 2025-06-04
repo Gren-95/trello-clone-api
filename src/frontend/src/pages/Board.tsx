@@ -87,52 +87,6 @@ export default function Board() {
     }
   };
 
-  const fetchLists = async () => {
-    if (!boardId) return;
-    try {
-      // Fetch the board data which should include lists with cards
-      const freshBoardData = await boards.getById(boardId);
-      
-      // Process the data to ensure all properties are preserved
-      const processedBoardData = {
-        ...freshBoardData,
-        lists: freshBoardData.lists.map(list => ({
-          ...list,
-          id: String(list.id),
-          cards: (list.cards || []).map(card => ({
-            ...card,
-            id: String(card.id)
-          }))
-        }))
-      };
-      
-      setBoard(processedBoardData);
-      
-      // Also update each list to ensure we have the latest data
-      const fetchedLists = await lists.getAllByBoardId(boardId);
-      if (board) {
-        // Map the cards from each list, preserving all their properties including description
-        const processedLists = fetchedLists.map(list => ({
-          ...list,
-          id: String(list.id),
-          cards: (list.cards || []).map(card => ({
-            ...card,
-            id: String(card.id)
-          }))
-        }));
-        
-        // Update board with fetched lists
-        setBoard({
-          ...processedBoardData,
-          lists: processedLists
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching lists:', err);
-      setError('Failed to load lists');
-    }
-  };
-
   const handleUpdateBoardName = async () => {
     if (!boardId || !editedBoardName.trim() || !board) return;
     
@@ -199,9 +153,10 @@ export default function Board() {
     }
   };
 
-  const cancelEditListTitle = () => {
-    setEditingListId(null);
-  };
+  // Unused function - commenting out to fix TS error
+  // const cancelEditListTitle = () => {
+  //   setEditingListId(null);
+  // };
 
   const handleCreateCard = async (listId: string) => {
     if (!newCardTitle.trim()) return;
@@ -328,22 +283,11 @@ export default function Board() {
     setDraggedItem({ type: 'card', card, listId, index });
   };
   
-  // Handle drag over for lists - should only be used for list dragging
-  const handleListDragOver = (e: React.DragEvent<HTMLDivElement>, listId: string) => {
-    // If we're dragging a card, don't do list-related operations
-    const dragData = draggedItem;
-    if (dragData && dragData.type === 'card') {
-      return;
-    }
-    
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    
-    // Only set dragOverListId if we're dragging a list, not a card
-    if (draggedItem && draggedItem.type === 'list') {
-      setDragOverListId(listId);
-    }
-  };
+  // Unused function - commenting out to fix TS error
+  // const handleListDragOver = (e: React.DragEvent<HTMLDivElement>, listId: string) => {
+  //   e.preventDefault();
+  //   e.dataTransfer.dropEffect = 'move';
+  // };
   
   // Handle drag end (cleanup)
   const handleDragEnd = () => {
@@ -972,7 +916,6 @@ export default function Board() {
           onClose={handleCloseCardModal}
           listId={selectedListId}
           cardId={selectedCardId}
-          boardId={boardId}
           onCardUpdated={handleCardUpdated}
         />
       )}

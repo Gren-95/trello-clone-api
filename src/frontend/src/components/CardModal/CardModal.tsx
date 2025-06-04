@@ -23,19 +23,17 @@ import CloseIcon from '@mui/icons-material/Close';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import CommentIcon from '@mui/icons-material/Comment';
 import { cards } from '../../services/api';
-import type { Card, ChecklistItem, Comment as CommentType } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import type { Card } from '../../types';
 
 interface CardModalProps {
   open: boolean;
   onClose: () => void;
   listId: string;
   cardId: string | null;
-  boardId: string;
   onCardUpdated: () => void;
 }
 
-export default function CardModal({ open, onClose, listId, cardId, boardId, onCardUpdated }: CardModalProps) {
+export default function CardModal({ open, onClose, listId, cardId, onCardUpdated }: CardModalProps) {
   const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,8 +47,6 @@ export default function CardModal({ open, onClose, listId, cardId, boardId, onCa
   const [newComment, setNewComment] = useState('');
   const [addingComment, setAddingComment] = useState(false);
   
-  const { user } = useAuth();
-
   useEffect(() => {
     if (open && cardId) {
       fetchCard();
